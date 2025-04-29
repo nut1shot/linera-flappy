@@ -1,0 +1,20 @@
+{
+  "name": "linera-flappy",
+  "private": true,
+  "author": "Linera <contact@linera.io>",
+  "license": "Apache-2.0",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "ci": "pnpm install --frozen-lockfile && pnpm build"
+  },
+  "dependencies": {
+    "@linera/client": "0.14.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.10"
+  }
+}
