@@ -10,7 +10,13 @@ source /dev/stdin <<<"$(linera net helper 2>/dev/null)"
 FAUCET_PORT=8079
 FAUCET_URL=http://localhost:$FAUCET_PORT
 
-# https://faucet.testnet-babbage.linera.net [Testnet]
+https://faucet.testnet-babbage.linera.net [Testnet]
+
+# Setting wallet Dir
+
+LINERA_TMP_DIR=$(mktemp -d)
+export LINERA_WALLET="$LINERA_TMP_DIR/wallet.json"
+export LINERA_STORAGE="rocksdb:$LINERA_TMP_DIR/client.db"
 
 linera_spawn linera net up --with-faucet --faucet-port $FAUCET_PORT
 
