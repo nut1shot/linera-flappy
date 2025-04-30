@@ -95,7 +95,7 @@
   <script type="module">
     import * as linera from '@linera/client';
 
-    const COUNTER_APP_ID = '3b0ea8f73efd376a7383671b6040fd77d1de55831be602b01568a3c8c9bac233';
+    const COUNTER_APP_ID = import.meta.env.VITE_COUNTER_APP_ID;
 
     const milestones = [
       { value: 0, label: "Starting Point" },
@@ -255,7 +255,7 @@
 
     async function run() {
       await linera.default();
-      const faucet = await new linera.Faucet('http://localhost:8079');
+      const faucet = await new linera.Faucet(import.meta.env.VITE_COUNTER_APP_URL);
       const wallet = await faucet.createWallet();
       const client = await new linera.Client(wallet);
       document.getElementById('chain-id').innerText = await faucet.claimChain(client);

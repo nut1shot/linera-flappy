@@ -38,6 +38,8 @@ linera publish-and-create \
 
 cd web-frontend
 
+set APP_ID to .env
+
 pnpm install
 
 pnpm dev
