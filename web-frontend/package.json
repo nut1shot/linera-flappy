@@ -1,7 +1,7 @@
 {
   "name": "linera-flappy",
-  "private": true,
-  "author": "Linera <contact@linera.io>",
+  "private": false,
+  "author": "nut1shot",
   "license": "Apache-2.0",
   "version": "0.0.0",
   "type": "module",

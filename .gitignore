@@ -2,6 +2,7 @@
 
 # dependencies
 /web-frontend/node_modules
+/web-frontend/dist
 /.pnp
 .pnp.js
 
