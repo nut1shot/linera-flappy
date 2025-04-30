@@ -10,7 +10,7 @@ source /dev/stdin <<<"$(linera net helper 2>/dev/null)"
 FAUCET_PORT=8079
 FAUCET_URL=http://localhost:$FAUCET_PORT
 
-https://faucet.testnet-babbage.linera.net [Testnet]
+FAUCET_URL=https://faucet.testnet-babbage.linera.net [Testnet]
 
 # Setting wallet Dir
 
