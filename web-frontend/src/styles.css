@@ -75,7 +75,6 @@ ul#logs {
 }
 
 h1 {
-  font-size: 6vw; /* ✅ Responsive heading */
   max-font-size: 2rem;
   color: #ff2508;
   margin-bottom: 1rem;
