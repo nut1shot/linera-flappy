@@ -4,85 +4,26 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Linera Flappy</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: "Segoe UI", sans-serif;
-      background: #f1f1f1;
-      color: #333;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 1rem;
-    }
-
-    canvas {
-      border: 2px solid #4CAF50;
-      margin: 1rem 0;
-      background: #d9fbe6;
-    }
-
-    .counter, .chain-info, .milestone-label {
-      margin: 0.5rem;
-    }
-
-    .progress-container {
-      width: 100%;
-      max-width: 400px;
-      height: 25px;
-      background: #ddd;
-      border-radius: 12px;
-      overflow: hidden;
-      margin: 1rem 0;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background-color: #4CAF50;
-      transition: width 0.3s ease;
-    }
-
-    .hero {
-      position: absolute;
-      font-size: 1.5rem;
-      top: -35px;
-      transition: left 0.3s ease;
-    }
-
-    ul#logs {
-      list-style: none;
-      font-size: 0.85rem;
-      max-height: 100px;
-      overflow-y: auto;
-      padding: 0;
-    }
-  </style>
+  <link rel="stylesheet" href="./src/styles.css" />
 </head>
 <body>
-  <h1>Linera Flappy</h1>
-  <p class="counter">Global Score: <span id="count">0</span></p>
-  
-  <canvas id="gameCanvas" width="400" height="300"></canvas>
+  <div class="container">
+    <h1>Linera Flappy</h1>
+    <p class="counter">Global Score: <span id="count">0</span></p>
 
-  <div class="progress-container">
-    <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+    <canvas id="gameCanvas" width="400" height="300"></canvas>
+
+    <div class="progress-container">
+      <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+    </div>
+    <div class="milestone-label" id="milestone-label">Starting Point</div>
+
+    <div class="chain-info">
+      <code id="chain-id">loading…</code>
+    </div>
+
+    <button id="restartBtn" class="restart-button">Restart</button>
   </div>
-  <div class="milestone-label" id="milestone-label">Starting Point</div>
-
-  <div class="chain-info">
-    Chain ID: <code id="chain-id">loading…</code>
-  </div>
-
-  <!-- <ul id="logs">
-    <template>
-      <li><span class="height"></span>: <span class="hash"></span></li>
-    </template>
-  </ul> -->
 
   <script type="importmap">
     {
@@ -92,192 +33,6 @@
     }
   </script>
 
-  <script type="module">
-    import * as linera from '@linera/client';
-
-    const COUNTER_APP_ID = import.meta.env.VITE_COUNTER_APP_ID;
-
-    const milestones = [
-      { value: 0, label: "Starting Point" },
-      { value: 10, label: "Warm-Up" },
-      { value: 40, label: "Halfway" },
-      { value: 80, label: "Going Strong" },
-      { value: 99, label: "Champion!" }
-    ];
-
-    let count = 0;
-
-    function updateUI(score) {
-      document.getElementById('count').innerText = score;
-
-      let current = milestones[0];
-      let next = null;
-      for (let i = 0; i < milestones.length; i++) {
-        if (score >= milestones[i].value) {
-          current = milestones[i];
-          next = milestones[i + 1] || null;
-        }
-      }
-
-      document.getElementById('milestone-label').innerText = current.label;
-
-      let percent = next ? ((score - current.value) / (next.value - current.value)) * 100 : 100;
-      document.getElementById('progress-fill').style.width = Math.min(percent, 100) + "%";
-    }
-
-    // Game variables
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-
-    class Bird {
-      constructor() {
-        this.x = 60;
-        this.y = canvas.height / 2;
-        this.velocity = 0;
-        this.gravity = 0.3;
-        this.jumpStrength = -6;
-        this.radius = 10;
-      }
-
-      jump() {
-        this.velocity = this.jumpStrength;
-      }
-
-      update() {
-        this.velocity += this.gravity;
-        this.y += this.velocity;
-
-        // Prevent going out of canvas
-        if (this.y < 0) this.y = 0;
-        if (this.y > canvas.height) this.y = canvas.height;
-      }
-
-      draw() {
-        ctx.beginPath();
-        ctx.fillStyle = "#4CAF50";
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    class Pipe {
-      constructor() {
-        this.x = canvas.width;
-        this.width = 40;
-        this.gap = 180;
-        this.top = Math.random() * (canvas.height - this.gap - 50);
-        this.bottom = this.top + this.gap;
-        this.speed = 1.5;
-        this.passed = false;
-      }
-
-      update() {
-        this.x -= this.speed;
-      }
-
-      draw() {
-        ctx.fillStyle = "#888";
-        ctx.fillRect(this.x, 0, this.width, this.top);
-        ctx.fillRect(this.x, this.bottom, this.width, canvas.height - this.bottom);
-      }
-
-      collides(bird) {
-        const inPipeX = bird.x + bird.radius > this.x && bird.x - bird.radius < this.x + this.width;
-        const hitTop = bird.y - bird.radius < this.top;
-        const hitBottom = bird.y + bird.radius > this.bottom;
-        return inPipeX && (hitTop || hitBottom);
-      }
-    }
-
-    let bird = new Bird();
-    let pipes = [];
-    let frame = 0;
-    let gameOver = false;
-
-    function resetGame() {
-      bird = new Bird();
-      pipes = [];
-      frame = 0;
-      gameOver = false;
-      count = 0;
-      updateUI(count);
-    }
-
-    function gameLoop() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      bird.update();
-      bird.draw();
-
-      if (frame % 120 === 0) {
-        pipes.push(new Pipe());
-      }
-
-      pipes.forEach(pipe => {
-        pipe.update();
-        pipe.draw();
-
-        if (!pipe.passed && pipe.x + pipe.width < bird.x) {
-          pipe.passed = true;
-          count++;
-          updateUI(count);
-          counter.query('{ "query": "mutation { increment(value: 1) }" }');
-        }
-
-        if (pipe.collides(bird)) {
-          gameOver = true;
-        }
-      });
-
-      pipes = pipes.filter(p => p.x + p.width > 0);
-
-      if (!gameOver) {
-        requestAnimationFrame(gameLoop);
-      } else {
-        ctx.fillStyle = "red";
-        ctx.font = "24px sans-serif";
-        ctx.fillText("Game Over! Click to restart", 60, canvas.height / 2);
-        location.reload();
-      }
-
-      frame++;
-    }
-
-    canvas.addEventListener('click', () => {
-      if (gameOver) {
-        resetGame();
-        gameLoop();
-      } else {
-        bird.jump();
-      }
-    });
-
-    let counter;
-
-    async function run() {
-      await linera.default();
-      const faucet = await new linera.Faucet(import.meta.env.VITE_COUNTER_APP_URL);
-      const wallet = await faucet.createWallet();
-      const client = await new linera.Client(wallet);
-      document.getElementById('chain-id').innerText = await faucet.claimChain(client);
-      counter = await client.frontend().application(COUNTER_APP_ID);
-
-      const logs = document.getElementById('logs');
-      client.onNotification(notification => {
-        const newBlock = notification.reason?.NewBlock;
-        if (!newBlock) return;
-        const entry = logs.getElementsByTagName('template')[0].content.cloneNode(true);
-        entry.querySelector('.height').textContent = newBlock.height;
-        entry.querySelector('.hash').textContent = newBlock.hash;
-        logs.insertBefore(entry, logs.firstChild);
-      });
-
-      const response = await counter.query('{ "query": "query { value }" }');
-      count = JSON.parse(response).data.value;
-      updateUI(count);
-    }
-
-    await run();
-    gameLoop();
-  </script>
+  <script type="module" src="./src/game.js"></script>
 </body>
 </html>
