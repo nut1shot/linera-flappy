@@ -16,6 +16,11 @@ baseImage.src = "/assets/base.png";
 const gameOverImage = new Image();
 gameOverImage.src = "/assets/gameover.png";
 
+// === Audio ===
+const audioJump = new Audio("/assets/wing.wav");
+const audioPoint = new Audio("/assets/point.wav");
+const audioHit = new Audio("/assets/hit.wav");
+
 let count = 0;
 let best = 0;
 let bird = new Bird(canvas, ctx);
@@ -86,6 +91,16 @@ function resetGame() {
 function gameLoop() {
   drawBackground();
 
+  if (count > 0) {
+    ctx.font = "bold 20px 'Press Start 2P', cursive";
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "center";
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 3;
+    ctx.strokeText(count, canvas.width / 2, 40);
+    ctx.fillText(count, canvas.width / 2, 40);
+  }
+
   if (isLoading) {
     loadingProgress = Math.min(loadingProgress + 0.01, 1);
     drawLoadingBar();
@@ -121,11 +136,13 @@ function gameLoop() {
     if (!pipe.passed && pipe.x + pipe.width < bird.x) {
       pipe.passed = true;
       count++;
+      audioPoint.play();
       counter.query('{ "query": "mutation { increment(value: 1) }" }');
     }
 
     if (pipe.collides(bird)) {
       gameOver = true;
+      audioHit.play();
     }
   });
 
@@ -158,6 +175,7 @@ canvas.addEventListener("click", () => {
   if (isLoading) return;
   if (!gameOver) {
     bird.jump();
+    audioJump.play();
     showInstructions = false;
   }
 });
@@ -167,6 +185,7 @@ document.addEventListener("keydown", (e) => {
   if (e.code === "Space" && !gameOver) {
     e.preventDefault();
     bird.jump();
+    audioJump.play();
     showInstructions = false;
   }
 });
