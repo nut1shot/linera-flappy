@@ -4,25 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Linera Flappy</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./src/styles.css" />
 </head>
 <body>
+  <div class="game-title">Linera Flappy</div>
   <div class="container">
-    <h1>Linera Flappy</h1>
-    <p class="counter">Global Score: <span id="count">0</span></p>
-
-    <canvas id="gameCanvas" width="400" height="300"></canvas>
-
-    <div class="progress-container">
-      <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
-    </div>
-    <div class="milestone-label" id="milestone-label">Starting Point</div>
+    <canvas id="gameCanvas" width="288" height="512"></canvas>
 
     <div class="chain-info">
-      <code id="chain-id">loading…</code>
+      Chain ID: <code id="chain-id">Loading…</code>
     </div>
 
     <button id="restartBtn" class="restart-button">Restart</button>
+    <button id="startBtn" class="start-button">START GAME</button>
   </div>
 
   <script type="importmap">

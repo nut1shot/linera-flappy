@@ -1,124 +1,117 @@
 import * as linera from "@linera/client";
+import { Bird } from "./bird.js";
+import { Pipe } from "./pipe.js";
 
 const COUNTER_APP_ID = import.meta.env.VITE_COUNTER_APP_ID;
 
-const milestones = [
-  { value: 0, label: "Starting Point" },
-  { value: 10, label: "Warm-Up" },
-  { value: 40, label: "Halfway" },
-  { value: 80, label: "Going Strong" },
-  { value: 99, label: "Champion!" },
-];
-
-let count = 0;
-
-function updateUI(score) {
-  document.getElementById("count").innerText = score;
-
-  let current = milestones[0];
-  let next = null;
-  for (let i = 0; i < milestones.length; i++) {
-    if (score >= milestones[i].value) {
-      current = milestones[i];
-      next = milestones[i + 1] || null;
-    }
-  }
-
-  document.getElementById("milestone-label").innerText = current.label;
-
-  let percent = next
-    ? ((score - current.value) / (next.value - current.value)) * 100
-    : 100;
-  document.getElementById("progress-fill").style.width =
-    Math.min(percent, 100) + "%";
-}
-
-// Game logic
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-class Bird {
-  constructor() {
-    this.x = 60;
-    this.y = canvas.height / 2;
-    this.velocity = 0;
-    this.gravity = 0.3;
-    this.jumpStrength = -6;
-    this.radius = 10;
-  }
+const bgImage = new Image();
+bgImage.src = "./src/assets/background.png";
 
-  jump() {
-    this.velocity = this.jumpStrength;
-  }
+const baseImage = new Image();
+baseImage.src = "./src/assets/base.png";
 
-  update() {
-    this.velocity += this.gravity;
-    this.y += this.velocity;
+const gameOverImage = new Image();
+gameOverImage.src = "./src/assets/gameover.png";
 
-    if (this.y < 0) this.y = 0;
-    if (this.y > canvas.height) this.y = canvas.height;
-  }
-
-  draw() {
-    ctx.beginPath();
-    ctx.fillStyle = "#ff2508";
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
-class Pipe {
-  constructor() {
-    this.x = canvas.width;
-    this.width = 40;
-    this.gap = 180;
-    this.top = Math.random() * (canvas.height - this.gap - 50);
-    this.bottom = this.top + this.gap;
-    this.speed = 1.5;
-    this.passed = false;
-  }
-
-  update() {
-    this.x -= this.speed;
-  }
-
-  draw() {
-    ctx.fillStyle = "#888";
-    ctx.fillRect(this.x, 0, this.width, this.top);
-    ctx.fillRect(this.x, this.bottom, this.width, canvas.height - this.bottom);
-  }
-
-  collides(bird) {
-    const inPipeX =
-      bird.x + bird.radius > this.x &&
-      bird.x - bird.radius < this.x + this.width;
-    const hitTop = bird.y - bird.radius < this.top;
-    const hitBottom = bird.y + bird.radius > this.bottom;
-    return inPipeX && (hitTop || hitBottom);
-  }
-}
-
-let bird = new Bird();
+let count = 0;
+let best = 0;
+let bird = new Bird(canvas, ctx);
 let pipes = [];
 let frame = 0;
 let gameOver = false;
+let counter;
+let showInstructions = true;
+let isLoading = true;
+let startGame = false;
+let loadingProgress = 0;
+
+function drawBackground() {
+  ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+}
+
+function drawBase() {
+  ctx.drawImage(baseImage, 0, canvas.height - 112, canvas.width, 112);
+}
+
+function drawLoadingBar() {
+  const barWidth = 180;
+  const barHeight = 12;
+  const x = (canvas.width - barWidth) / 2;
+  const y = canvas.height / 2;
+  const progress = Math.min(loadingProgress, 1);
+
+  ctx.fillStyle = "#000";
+  ctx.fillRect(x, y, barWidth, barHeight);
+
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(x, y, barWidth * progress, barHeight);
+
+  ctx.strokeStyle = "#fff";
+  ctx.strokeRect(x, y, barWidth, barHeight);
+
+  ctx.font = "bold 10px 'Press Start 2P', cursive";
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#fff";
+  ctx.fillText("Loading chain...", canvas.width / 2, y - 10);
+}
+
+function drawGameOver() {
+  const imgWidth = 192;
+  const imgHeight = 42;
+  const x = (canvas.width - imgWidth) / 2;
+  const y = canvas.height / 3 - imgHeight;
+  ctx.drawImage(gameOverImage, x, y, imgWidth, imgHeight);
+
+  // Score and best
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 14px 'Press Start 2P', cursive";
+  ctx.textAlign = "center";
+  ctx.fillText(`SCORE: ${count}`, canvas.width / 2, y + imgHeight + 40);
+  ctx.fillText(`BEST: ${best}`, canvas.width / 2, y + imgHeight + 70);
+}
 
 function resetGame() {
-  bird = new Bird();
+  bird = new Bird(canvas, ctx);
   pipes = [];
   frame = 0;
   gameOver = false;
+  if (count > best) best = count;
   count = 0;
-  updateUI(count);
+  showInstructions = true;
 }
 
 function gameLoop() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBackground();
+
+  if (isLoading) {
+    loadingProgress = Math.min(loadingProgress + 0.01, 1);
+    drawLoadingBar();
+    requestAnimationFrame(gameLoop);
+    frame++;
+    return;
+  }
+
+  if (!startGame) {
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 10px 'Press Start 2P', cursive";
+    ctx.textAlign = "center";
+    ctx.fillText(
+      "TAP or PRESS SPACE to FLY",
+      canvas.width / 2,
+      canvas.height / 4
+    );
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+
   bird.update();
   bird.draw();
 
   if (frame % 120 === 0) {
-    pipes.push(new Pipe());
+    pipes.push(new Pipe(canvas, ctx));
   }
 
   pipes.forEach((pipe) => {
@@ -128,7 +121,6 @@ function gameLoop() {
     if (!pipe.passed && pipe.x + pipe.width < bird.x) {
       pipe.passed = true;
       count++;
-      updateUI(count);
       counter.query('{ "query": "mutation { increment(value: 1) }" }');
     }
 
@@ -139,29 +131,58 @@ function gameLoop() {
 
   pipes = pipes.filter((p) => p.x + p.width > 0);
 
+  drawBase();
+
+  if (showInstructions) {
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 10px 'Press Start 2P', cursive";
+    ctx.textAlign = "center";
+    ctx.fillText(
+      "TAP or PRESS SPACE to FLY",
+      canvas.width / 2,
+      canvas.height / 4
+    );
+  }
+
   if (!gameOver) {
     requestAnimationFrame(gameLoop);
   } else {
+    drawGameOver();
     restartBtn.classList.add("show");
   }
 
   frame++;
 }
 
-const restartBtn = document.getElementById("restartBtn");
-
 canvas.addEventListener("click", () => {
-  if (gameOver) return;
-  else {
+  if (isLoading) return;
+  if (!gameOver) {
     bird.jump();
+    showInstructions = false;
   }
 });
 
-canvas.addEventListener("touchstart", () => {
-  if (!gameOver) bird.jump();
+document.addEventListener("keydown", (e) => {
+  if (isLoading) return;
+  if (e.code === "Space" && !gameOver) {
+    e.preventDefault();
+    bird.jump();
+    showInstructions = false;
+  }
 });
 
-let counter;
+const restartBtn = document.getElementById("restartBtn");
+restartBtn.addEventListener("click", () => {
+  restartBtn.classList.remove("show");
+  resetGame();
+  gameLoop();
+});
+
+const startBtn = document.getElementById("startBtn");
+startBtn.addEventListener("click", () => {
+  startBtn.classList.remove("show");
+  startGame = true;
+});
 
 async function run() {
   await linera.default();
@@ -173,28 +194,15 @@ async function run() {
   );
   counter = await client.frontend().application(COUNTER_APP_ID);
 
-  const logs = document.getElementById("logs");
-  client.onNotification((notification) => {
-    const newBlock = notification.reason?.NewBlock;
-    if (!newBlock) return;
-    const entry = logs
-      .getElementsByTagName("template")[0]
-      .content.cloneNode(true);
-    entry.querySelector(".height").textContent = newBlock.height;
-    entry.querySelector(".hash").textContent = newBlock.hash;
-    logs.insertBefore(entry, logs.firstChild);
-  });
-
   const response = await counter.query('{ "query": "query { value }" }');
   count = JSON.parse(response).data.value;
-  updateUI(count);
+
+  isLoading = false;
+  showInstructions = true;
+  startBtn.classList.add("show");
 }
 
-await run();
-gameLoop();
-
-restartBtn.addEventListener("click", () => {
-  restartBtn.classList.remove("show");
-  resetGame();
+window.addEventListener("load", () => {
+  run();
   gameLoop();
 });
