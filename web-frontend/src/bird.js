@@ -10,7 +10,7 @@ export class Bird {
     this.width = 34;
     this.height = 24;
     this.image = new Image();
-    this.image.src = "./src/assets/bird.png";
+    this.image.src = "/assets/bird.png";
     this.baseHeight = 112;
   }
 

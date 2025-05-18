@@ -11,10 +11,10 @@ export class Pipe {
     this.passed = false;
 
     this.topImage = new Image();
-    this.topImage.src = "./src/assets/pipe-top.png";
+    this.topImage.src = "/assets/pipe-top.png";
 
     this.bottomImage = new Image();
-    this.bottomImage.src = "./src/assets/pipe-bottom.png";
+    this.bottomImage.src = "/assets/pipe-bottom.png";
   }
 
   update() {

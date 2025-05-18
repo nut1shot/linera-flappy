@@ -8,13 +8,13 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
 const bgImage = new Image();
-bgImage.src = "./src/assets/background.png";
+bgImage.src = "/assets/background.png";
 
 const baseImage = new Image();
-baseImage.src = "./src/assets/base.png";
+baseImage.src = "/assets/base.png";
 
 const gameOverImage = new Image();
-gameOverImage.src = "./src/assets/gameover.png";
+gameOverImage.src = "/assets/gameover.png";
 
 let count = 0;
 let best = 0;
