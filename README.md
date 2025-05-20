@@ -1,45 +1,79 @@
-# linera-flappy
+# 🐦 Linera Flappy
 
-Flappy game on Linera blockchain
+A pixel-style Flappy Bird–inspired web game powered by the [Linera blockchain](https://linera.dev). This game showcases how real-time interactions and on-chain state can be combined to make fun and decentralized experiences.
 
-# Setting Up
+![screenshot](./public/assets/preview.png)
 
-export PATH="$PWD/target/debug:$PATH"
-source /dev/stdin <<<"$(linera net helper 2>/dev/null)"
+## 🎮 Gameplay
 
-FAUCET_PORT=8079
-FAUCET_URL=http://localhost:$FAUCET_PORT
+- Tap, click, or press `Space` to flap
+- Avoid pipes and survive as long as you can
+- Global score is updated via a Linera microchain
+- Game state is animated with sprites, audio, and real-time chain interaction
 
-FAUCET_URL=https://faucet.testnet-babbage.linera.net [Testnet]
+## 🛠 Tech Stack
 
-# Setting wallet Dir
+- **Canvas API** for rendering
+- **JavaScript (ESM)** modules
+- **Linera client** for WebAssembly blockchain calls
+- **Vite** for modern development tooling
+- **Deployed on Vercel**
 
-LINERA_TMP_DIR=$(mktemp -d)
-export LINERA_WALLET="$LINERA_TMP_DIR/wallet.json"
-export LINERA_STORAGE="rocksdb:$LINERA_TMP_DIR/client.db"
+## 🚀 Live Demo
 
-linera_spawn linera net up --with-faucet --faucet-port $FAUCET_PORT
+👉 [linera-flappy-game.vercel.app](https://linera-flappy-game.vercel.app)
 
-linera wallet init --faucet $FAUCET_URL
+## 📦 Getting Started
 
-linera wallet request-chain --faucet $FAUCET_URL
+### Prerequisites
 
-# Build
+- [pnpm](https://pnpm.io/)
+- Node.js 18+
+- Chrome or Brave (for WASM + audio autoplay)
 
-cargo build --release --target wasm32-unknown-unknown
+### Install & Run Locally
 
-# Publish
-
-linera publish-and-create \
- target/wasm32-unknown-unknown/release/counter\_{contract,service}.wasm \
- --json-argument "1"
-
-# Using web frontend
-
-cd web-frontend
-
-set APP_ID to .env
-
+```bash
 pnpm install
-
 pnpm dev
+```
+
+To build:
+
+```bash
+pnpm build
+pnpm preview
+```
+
+## 🔗 Blockchain Integration
+
+The game interacts with a Linera smart contract to store and fetch scores.
+
+- Chain setup handled via Faucet
+- Counter app deployed via Linera CLI
+- Live chain ID shown in UI
+
+### Environment Variables
+
+Create a `.env` file:
+
+```env
+VITE_COUNTER_APP_URL=https://<your-linera-service>
+VITE_COUNTER_APP_ID=<your-counter-app-id>
+```
+
+## 📁 Assets
+
+- Sprites from Flappy Bird–style pixel art
+- Sounds: `jump.wav`, `hit.wav`, `point.wav`
+- Assets stored in `/public/assets/`
+
+## 🙌 Credits
+
+- Built by [@nut1shot](https://github.com/nut1shot)
+- Uses Linera's WebAssembly SDK
+- Inspired by classic Flappy Bird
+
+## 🧪 License
+
+MIT — feel free to fork, remix, and improve.
