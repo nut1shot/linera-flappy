@@ -1,23 +1,24 @@
-// Copyright (c) Zefchain Labs, Inc.
-// SPDX-License-Identifier: Apache-2.0
-
-/*! ABI of the Counter Example Application */
-
 use async_graphql::{Request, Response};
-use linera_sdk::linera_base_types::{ContractAbi, ServiceAbi};
+use linera_sdk::{
+    graphql::GraphQLMutationRoot,
+    linera_base_types::{ContractAbi, ServiceAbi},
+};
+use serde::{Deserialize, Serialize};
 
-// ANCHOR: contract_abi
-pub struct CounterAbi;
+pub struct FlappyAbi;
 
-impl ContractAbi for CounterAbi {
-    type Operation = u64;
-    type Response = u64;
+impl ContractAbi for FlappyAbi {
+    type Operation = Operation;
+    type Response = ();
 }
-// ANCHOR_END: contract_abi
 
-// ANCHOR: service_abi
-impl ServiceAbi for CounterAbi {
+impl ServiceAbi for FlappyAbi {
     type Query = Request;
     type QueryResponse = Response;
 }
-// ANCHOR_END: service_abi
+
+#[derive(Debug, Deserialize, Serialize, GraphQLMutationRoot)]
+pub enum Operation {
+    Increment { value: u64 },
+    SetBest {},
+}

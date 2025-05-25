@@ -1,32 +1,32 @@
 // Copyright (c) Zefchain Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-//! Integration tests for the Counter application.
+//! Integration testing for the flappy application.
 
 #![cfg(not(target_arch = "wasm32"))]
 
+use flappy::Operation;
 use linera_sdk::test::{QueryOutcome, TestValidator};
 
-/// Test setting a counter and testing its coherency across microchains.
+/// Tests setting and incrementing a counter
 ///
-/// Creates the application on a `chain`, initializing it with a 42 then adds 15 and obtains 57.
+/// Creates the application on a `chain`, initializing it with a 10 then add 10 and obtain 20.
 /// which is then checked.
-// ANCHOR: counter_integration_test
 #[tokio::test(flavor = "multi_thread")]
 async fn single_chain_test() {
     let (validator, module_id) =
-        TestValidator::with_current_module::<counter::CounterAbi, (), u64>().await;
+        TestValidator::with_current_module::<flappy::FlappyAbi, (), u64>().await;
     let mut chain = validator.new_chain().await;
 
-    let initial_state = 42u64;
+    let initial_state = 10u64;
     let application_id = chain
         .create_application(module_id, (), initial_state, vec![])
         .await;
 
-    let increment = 15u64;
+    let increment = 10u64;
     chain
         .add_block(|block| {
-            block.with_operation(application_id, increment);
+            block.with_operation(application_id, Operation::Increment { value: increment });
         })
         .await;
 
@@ -34,6 +34,6 @@ async fn single_chain_test() {
     let QueryOutcome { response, .. } =
         chain.graphql_query(application_id, "query { value }").await;
     let state_value = response["value"].as_u64().expect("Failed to get the u64");
+
     assert_eq!(state_value, final_value);
 }
-// ANCHOR_END: counter_integration_test
