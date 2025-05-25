@@ -2,7 +2,7 @@ import * as linera from "@linera/client";
 import { Bird } from "./bird.js";
 import { Pipe } from "./pipe.js";
 
-const COUNTER_APP_ID = import.meta.env.VITE_COUNTER_APP_ID;
+const COUNTER_APP_ID = import.meta.env.VITE_APP_ID;
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -60,7 +60,7 @@ function drawLoadingBar() {
   ctx.font = "bold 10px 'Press Start 2P', cursive";
   ctx.textAlign = "center";
   ctx.fillStyle = "#fff";
-  ctx.fillText("Loading chain...", canvas.width / 2, y - 10);
+  ctx.fillText("Loading ...", canvas.width / 2, y - 10);
 }
 
 function drawGameOver() {
@@ -72,23 +72,33 @@ function drawGameOver() {
 
   // Score and best
   ctx.fillStyle = "#fff";
+  ctx.strokeStyle = "#000";
   ctx.font = "bold 14px 'Press Start 2P', cursive";
   ctx.textAlign = "center";
+  ctx.strokeText(`SCORE: ${count}`, canvas.width / 2, y + imgHeight + 40);
+  ctx.strokeText(`BEST: ${best}`, canvas.width / 2, y + imgHeight + 70);
   ctx.fillText(`SCORE: ${count}`, canvas.width / 2, y + imgHeight + 40);
   ctx.fillText(`BEST: ${best}`, canvas.width / 2, y + imgHeight + 70);
 }
 
-function resetGame() {
+async function getBest() {
+  isLoading = true;
+  const response = await counter.query('{ "query": "query { best }" }');
+  isLoading = false;
+  return JSON.parse(response).data.best;
+}
+
+async function resetGame() {
   bird = new Bird(canvas, ctx);
   pipes = [];
   frame = 0;
   gameOver = false;
-  if (count > best) best = count;
+  best = await getBest();
   count = 0;
   showInstructions = true;
 }
 
-function gameLoop() {
+async function gameLoop() {
   drawBackground();
 
   if (count > 0) {
@@ -111,8 +121,14 @@ function gameLoop() {
 
   if (!startGame) {
     ctx.fillStyle = "#fff";
+    ctx.strokeStyle = "#000";
     ctx.font = "bold 10px 'Press Start 2P', cursive";
     ctx.textAlign = "center";
+    ctx.strokeText(
+      "TAP or PRESS SPACE to FLY",
+      canvas.width / 2,
+      canvas.height / 4
+    );
     ctx.fillText(
       "TAP or PRESS SPACE to FLY",
       canvas.width / 2,
@@ -152,8 +168,14 @@ function gameLoop() {
 
   if (showInstructions) {
     ctx.fillStyle = "#fff";
+    ctx.strokeStyle = "#000";
     ctx.font = "bold 10px 'Press Start 2P', cursive";
     ctx.textAlign = "center";
+    ctx.strokeText(
+      "TAP or PRESS SPACE to FLY",
+      canvas.width / 2,
+      canvas.height / 4
+    );
     ctx.fillText(
       "TAP or PRESS SPACE to FLY",
       canvas.width / 2,
@@ -164,6 +186,8 @@ function gameLoop() {
   if (!gameOver) {
     requestAnimationFrame(gameLoop);
   } else {
+    await counter.query('{ "query": "mutation { setBest }" }');
+    best = await getBest();
     drawGameOver();
     restartBtn.classList.add("show");
   }
@@ -205,17 +229,14 @@ startBtn.addEventListener("click", () => {
 
 async function run() {
   await linera.default();
-  const faucet = await new linera.Faucet(import.meta.env.VITE_COUNTER_APP_URL);
+  const faucet = await new linera.Faucet(import.meta.env.VITE_APP_URL);
   const wallet = await faucet.createWallet();
   const client = await new linera.Client(wallet);
   document.getElementById("chain-id").innerText = await faucet.claimChain(
     client
   );
   counter = await client.frontend().application(COUNTER_APP_ID);
-
-  const response = await counter.query('{ "query": "query { value }" }');
-  count = JSON.parse(response).data.value;
-
+  count = 0;
   isLoading = false;
   showInstructions = true;
   startBtn.classList.add("show");
