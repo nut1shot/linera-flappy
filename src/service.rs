@@ -10,7 +10,7 @@ use linera_sdk::{
     ServiceRuntime,
 };
 
-use flappy::Operation;
+use flappy::{ApplicationParameters, LeaderboardEntry, Operation};
 
 use self::state::FlappyState;
 
@@ -26,7 +26,7 @@ impl WithServiceAbi for FlappyService {
 }
 
 impl Service for FlappyService {
-    type Parameters = ();
+    type Parameters = ApplicationParameters;
 
     async fn new(runtime: ServiceRuntime<Self>) -> Self {
         let state = FlappyState::load(runtime.root_view_storage_context())
@@ -39,10 +39,19 @@ impl Service for FlappyService {
     }
 
     async fn handle_query(&self, query: Self::Query) -> Self::QueryResponse {
+        let value = *self.state.value.get();
+        let best = *self.state.best.get();
+        let player_name = self.state.player_name.get().clone();
+        let is_leaderboard = *self.state.is_leaderboard_chain.get();
+        let leaderboard = self.state.top_leaderboard.get().clone();
+
         Schema::build(
             QueryRoot {
-                value: *self.state.value.get(),
-                best: *self.state.best.get(),
+                value,
+                best,
+                player_name,
+                is_leaderboard,
+                leaderboard,
             },
             Operation::mutation_root(self.runtime.clone()),
             EmptySubscription,
@@ -56,6 +65,9 @@ impl Service for FlappyService {
 struct QueryRoot {
     value: u64,
     best: u64,
+    player_name: String,
+    is_leaderboard: bool,
+    leaderboard: Vec<LeaderboardEntry>,
 }
 
 #[Object]
@@ -66,5 +78,24 @@ impl QueryRoot {
 
     async fn best(&self) -> &u64 {
         &self.best
+    }
+
+    async fn player_name(&self) -> &str {
+        &self.player_name
+    }
+
+    async fn is_leaderboard_chain(&self) -> bool {
+        self.is_leaderboard
+    }
+
+    async fn leaderboard(&self) -> &Vec<LeaderboardEntry> {
+        &self.leaderboard
+    }
+
+    async fn my_rank(&self) -> Option<usize> {
+        self.leaderboard
+            .iter()
+            .position(|entry| entry.player_name == self.player_name)
+            .map(|pos| pos + 1)
     }
 }
