@@ -6,25 +6,44 @@
 
 body {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #f1f1f1; /* classic blue sky */
-  height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
   margin: 0;
   font-family: 'Press Start 2P', cursive;
   font-size: 12px;
+  color: #fff;
+}
+
+.main-container {
+  display: flex;
+  gap: 30px;
+  align-items: flex-start;
+  padding: 20px;
+}
+
+.game-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 300px;
 }
 
 canvas {
-  border: 2px solid #ff2508;
+  border: 3px solid #000;
   background: #d9fbe6;
   display: block;
   margin: 0 auto;
   image-rendering: pixelated;
-}
-
-.chain-info {
-  margin: 0.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .container {
@@ -33,41 +52,167 @@ canvas {
   background: none;
   box-shadow: none;
   text-align: center;
+  position: relative;
 }
 
 .game-title {
-  position: fixed;
-  top: 10px;
-  left: 10px;
   font-family: 'Press Start 2P', cursive;
-  font-size: 20px;
-  color: #ff2508;
-  padding: 4px 6px;
-  z-index: 100;
+  font-size: 32px;
+  color: #ffcc00;
+  text-shadow: 3px 3px 0 #000;
+  margin-bottom: 20px;
+  animation: pulse 2s ease-in-out infinite;
 }
 
-.restart-button {
-  display: none;
-  position: absolute;
-  top: 56%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  padding: 8px 16px;
-  background-color: #ffcc00;
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.player-info, .leaderboard-panel {
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #ffcc00;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.player-info h3, .leaderboard-panel h3 {
+  color: #ffcc00;
+  margin-bottom: 15px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 10px;
+}
+
+.info-item .label {
+  color: #aaa;
+}
+
+.info-item .value {
+  color: #fff;
+  font-weight: bold;
+}
+
+#player-name {
+  color: #ffcc00;
+}
+
+.leaderboard-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+.leaderboard-entry {
+  display: grid;
+  grid-template-columns: 30px 1fr 80px;
+  gap: 10px;
+  padding: 8px;
+  margin-bottom: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  font-size: 9px;
+  align-items: center;
+}
+
+.leaderboard-entry.gold {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
   color: #000;
+}
+
+.leaderboard-entry.silver {
+  background: linear-gradient(135deg, #C0C0C0, #B8B8B8);
+  color: #000;
+}
+
+.leaderboard-entry.bronze {
+  background: linear-gradient(135deg, #CD7F32, #B87333);
+  color: #000;
+}
+
+.leaderboard-entry.current-player {
+  border: 2px solid #ffcc00;
+  background: rgba(255, 204, 0, 0.2);
+}
+
+.rank {
+  text-align: center;
+  font-weight: bold;
+}
+
+.player-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.score {
+  text-align: right;
+  font-weight: bold;
+}
+
+.refresh-button {
+  width: 100%;
+  padding: 8px;
+  background: #4CAF50;
+  color: #fff;
   border: 2px solid #000;
+  border-radius: 4px;
   font-family: 'Press Start 2P', cursive;
   font-size: 10px;
   cursor: pointer;
+  transition: all 0.3s;
+}
+
+.refresh-button:hover {
+  background: #45a049;
+  transform: translateY(-2px);
+}
+
+.restart-button, .start-button {
+  display: none;
+  position: absolute;
+  padding: 10px 20px;
+  background-color: #ffcc00;
+  color: #000;
+  border: 3px solid #000;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 12px;
+  cursor: pointer;
   text-transform: uppercase;
+  box-shadow: 4px 4px 0 #000;
+  transition: all 0.1s;
+}
+
+.restart-button {
+  top: 60%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.start-button {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 50;
+}
+
+.restart-button:active, .start-button:active {
+  transform: translate(-50%, -50%) translateY(2px);
   box-shadow: 2px 2px 0 #000;
 }
 
-.restart-button.show {
+.restart-button.show, .start-button.show {
   display: inline-block;
   opacity: 0;
   animation: fadeIn 0.6s ease-in forwards;
-  z-index: 10;
 }
 
 @keyframes fadeIn {
@@ -77,36 +222,81 @@ canvas {
 }
 
 .chain-info {
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #666;
+  border-radius: 8px;
+  padding: 15px;
+  font-size: 9px;
+}
+
+.chain-id-text {
+  font-size: 8px;
+  word-break: break-all;
+  display: block;
+  margin-top: 5px;
+  color: #aaa;
+}
+
+.instructions {
   position: fixed;
-  bottom: 10px;
-  left: 10px;
-  font-size: 0.75rem;
-  word-break: break-word;
-  background: #fff;
-  padding: 4px 8px;
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  z-index: 100;
-}
-
-.start-button {
-  position: absolute;
-  top: 50%;
+  bottom: 20px;
   left: 50%;
-  transform: translate(-50%, -50%);
-  padding: 10px 20px;
-  background: #ffcc00;
-  border: 2px solid #000;
-  font-family: 'Press Start 2P', cursive;
-  font-size: 10px;
-  cursor: pointer;
-  display: none;
-  z-index: 50;
+  transform: translateX(-50%);
+  text-align: center;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.7);
 }
 
-.start-button.show {
-  display: inline-block;
-  opacity: 0;
-  animation: fadeIn 0.6s ease-in forwards;
-  z-index: 10;
+.instructions p {
+  margin-bottom: 5px;
+}
+
+.instructions kbd {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.loading {
+  text-align: center;
+  color: #aaa;
+  padding: 20px;
+  font-size: 10px;
+}
+
+/* Scrollbar styling */
+.leaderboard-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.leaderboard-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.leaderboard-list::-webkit-scrollbar-thumb {
+  background: #ffcc00;
+  border-radius: 4px;
+}
+
+.leaderboard-list::-webkit-scrollbar-thumb:hover {
+  background: #ffa500;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .main-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .info-section {
+    width: 100%;
+    max-width: 350px;
+  }
+  
+  .game-title {
+    font-size: 24px;
+  }
 }

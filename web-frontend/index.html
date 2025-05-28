@@ -9,15 +9,52 @@
 </head>
 <body>
   <div class="game-title">Linera Flappy</div>
-  <div class="container">
-    <canvas id="gameCanvas" width="288" height="512"></canvas>
-
-    <div class="chain-info">
-      Chain ID: <code id="chain-id">Loading…</code>
+  
+  <div class="main-container">
+    <div class="game-section">
+      <div class="container">
+        <canvas id="gameCanvas" width="288" height="512"></canvas>
+        <button id="restartBtn" class="restart-button">Restart</button>
+        <button id="startBtn" class="start-button">START GAME</button>
+      </div>
     </div>
 
-    <button id="restartBtn" class="restart-button">Restart</button>
-    <button id="startBtn" class="start-button">START GAME</button>
+    <div class="info-section">
+      <div class="player-info">
+        <h3>Player Info</h3>
+        <div class="info-item">
+          <span class="label">Name:</span>
+          <span id="player-name" class="value">Loading...</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Best:</span>
+          <span id="player-best" class="value">0</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Rank:</span>
+          <span id="player-rank" class="value">-</span>
+        </div>
+      </div>
+
+      <div class="leaderboard-panel">
+        <h3>Top Players</h3>
+        <div id="leaderboard-list" class="leaderboard-list">
+          <div class="loading">Loading...</div>
+        </div>
+        <button id="refreshBtn" class="refresh-button">↻ Refresh</button>
+      </div>
+
+      <div class="chain-info">
+        <div class="info-item">
+          <span class="label">Chain ID:</span>
+          <code id="chain-id" class="chain-id-text">Loading…</code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <p><kbd>SPACE</kbd> or <kbd>TAP</kbd> to fly</p>
   </div>
 
   <script type="importmap">

@@ -3,6 +3,7 @@ import { Bird } from "./bird.js";
 import { Pipe } from "./pipe.js";
 
 const COUNTER_APP_ID = import.meta.env.VITE_APP_ID;
+const LEADERBOARD_CHAIN_ID = import.meta.env.VITE_LEADERBOARD_CHAIN_ID;
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -32,6 +33,11 @@ let showInstructions = true;
 let isLoading = true;
 let startGame = false;
 let loadingProgress = 0;
+let playerName = "";
+let chainId = "";
+let leaderboard = [];
+let myRank = null;
+let isGameConfigured = false;
 
 function drawBackground() {
   ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
@@ -72,20 +78,119 @@ function drawGameOver() {
 
   // Score and best
   ctx.fillStyle = "#fff";
-  ctx.strokeStyle = "#000";
   ctx.font = "bold 14px 'Press Start 2P', cursive";
   ctx.textAlign = "center";
-  ctx.strokeText(`SCORE: ${count}`, canvas.width / 2, y + imgHeight + 40);
-  ctx.strokeText(`BEST: ${best}`, canvas.width / 2, y + imgHeight + 70);
   ctx.fillText(`SCORE: ${count}`, canvas.width / 2, y + imgHeight + 40);
   ctx.fillText(`BEST: ${best}`, canvas.width / 2, y + imgHeight + 70);
+
+  // Show rank if available
+  if (myRank) {
+    ctx.font = "bold 12px 'Press Start 2P', cursive";
+    ctx.fillText(`RANK: #${myRank}`, canvas.width / 2, y + imgHeight + 100);
+  }
+}
+
+async function setupGame() {
+  try {
+    const setupQuery = `mutation { setupGame(leaderboardChainId: "${LEADERBOARD_CHAIN_ID}",leaderboardName: "${playerName}") }`;
+
+    const queryObject = { query: setupQuery };
+    console.log(JSON.stringify(queryObject));
+    await counter.query(JSON.stringify(queryObject));
+    console.log("Game setup completed with leaderboard:", LEADERBOARD_CHAIN_ID);
+    isGameConfigured = true;
+  } catch (error) {
+    console.log("Game setup skipped:", error.message);
+  }
 }
 
 async function getBest() {
-  isLoading = true;
   const response = await counter.query('{ "query": "query { best }" }');
-  isLoading = false;
   return JSON.parse(response).data.best;
+}
+
+async function fetchLeaderboard() {
+  try {
+    if (isGameConfigured) {
+      const requestQuery = {
+        query: "mutation { requestLeaderboard }",
+      };
+      await counter.query(JSON.stringify(requestQuery));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    const leaderboardQuery = {
+      query: `query {
+        leaderboard {
+          playerName
+          score
+          chainId
+        }
+        myRank
+        playerName
+        best
+      }`,
+    };
+
+    const response = await counter.query(JSON.stringify(leaderboardQuery));
+    const data = JSON.parse(response).data;
+
+    console.log("Leaderboard data:", data);
+    leaderboard = data.leaderboard || [];
+    myRank = data.myRank;
+    playerName = data.playerName;
+    best = data.best;
+
+    // Update UI
+    document.getElementById("player-name").innerText = playerName;
+    document.getElementById("player-best").innerText = best;
+    document.getElementById("player-rank").innerText = myRank || "-";
+    updateLeaderboardUI();
+  } catch (error) {
+    console.error("Failed to fetch leaderboard:", error);
+  }
+}
+
+function updateLeaderboardUI() {
+  const leaderboardList = document.getElementById("leaderboard-list");
+
+  if (leaderboard.length === 0) {
+    leaderboardList.innerHTML = '<div class="loading">No scores yet!</div>';
+    return;
+  }
+
+  leaderboardList.innerHTML = leaderboard
+    .slice(0, 10)
+    .map((entry, index) => {
+      const rank = index + 1;
+      let className = "leaderboard-entry";
+
+      if (rank === 1) className += " gold";
+      else if (rank === 2) className += " silver";
+      else if (rank === 3) className += " bronze";
+
+      if (entry.playerName === playerName) className += " current-player";
+
+      return `
+        <div class="${className}">
+          <div class="rank">${rank}</div>
+          <div class="player-name">${entry.playerName}</div>
+          <div class="score">${entry.score}</div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+async function submitScoreToLeaderboard() {
+  try {
+    if (isGameConfigured) {
+      await counter.query('{ "query": "mutation { setBestAndSubmit }" }');
+      await fetchLeaderboard();
+    }
+  } catch (error) {
+    console.error("Failed to submit score:", error);
+  }
 }
 
 async function resetGame() {
@@ -96,7 +201,11 @@ async function resetGame() {
   best = await getBest();
   count = 0;
   showInstructions = true;
+
+  document.getElementById("player-best").innerText = best;
 }
+
+let showLeaderboard = false;
 
 async function gameLoop() {
   drawBackground();
@@ -105,9 +214,7 @@ async function gameLoop() {
     ctx.font = "bold 20px 'Press Start 2P', cursive";
     ctx.fillStyle = "#fff";
     ctx.textAlign = "center";
-    ctx.strokeStyle = "#000";
     ctx.lineWidth = 3;
-    ctx.strokeText(count, canvas.width / 2, 40);
     ctx.fillText(count, canvas.width / 2, 40);
   }
 
@@ -120,20 +227,13 @@ async function gameLoop() {
   }
 
   if (!startGame) {
-    ctx.fillStyle = "#fff";
-    ctx.strokeStyle = "#000";
     ctx.font = "bold 10px 'Press Start 2P', cursive";
-    ctx.textAlign = "center";
-    ctx.strokeText(
-      "TAP or PRESS SPACE to FLY",
-      canvas.width / 2,
-      canvas.height / 4
-    );
     ctx.fillText(
       "TAP or PRESS SPACE to FLY",
       canvas.width / 2,
       canvas.height / 4
     );
+
     requestAnimationFrame(gameLoop);
     return;
   }
@@ -168,14 +268,8 @@ async function gameLoop() {
 
   if (showInstructions) {
     ctx.fillStyle = "#fff";
-    ctx.strokeStyle = "#000";
     ctx.font = "bold 10px 'Press Start 2P', cursive";
     ctx.textAlign = "center";
-    ctx.strokeText(
-      "TAP or PRESS SPACE to FLY",
-      canvas.width / 2,
-      canvas.height / 4
-    );
     ctx.fillText(
       "TAP or PRESS SPACE to FLY",
       canvas.width / 2,
@@ -186,8 +280,9 @@ async function gameLoop() {
   if (!gameOver) {
     requestAnimationFrame(gameLoop);
   } else {
-    await counter.query('{ "query": "mutation { setBest }" }');
+    await submitScoreToLeaderboard();
     best = await getBest();
+    document.getElementById("player-best").innerText = best;
     drawGameOver();
     restartBtn.classList.add("show");
   }
@@ -196,7 +291,7 @@ async function gameLoop() {
 }
 
 canvas.addEventListener("click", () => {
-  if (isLoading) return;
+  if (isLoading || showLeaderboard) return;
   if (!gameOver) {
     bird.jump();
     audioJump.play();
@@ -206,6 +301,7 @@ canvas.addEventListener("click", () => {
 
 document.addEventListener("keydown", (e) => {
   if (isLoading) return;
+
   if (e.code === "Space" && !gameOver) {
     e.preventDefault();
     bird.jump();
@@ -227,15 +323,34 @@ startBtn.addEventListener("click", () => {
   startGame = true;
 });
 
+const refreshBtn = document.getElementById("refreshBtn");
+refreshBtn.addEventListener("click", async () => {
+  await fetchLeaderboard();
+});
+
+function promptPlayerName() {
+  const name = prompt("Enter your name (max 20 characters):");
+  if (name && name.trim()) {
+    return name.trim().substring(0, 20);
+  }
+  return `Player${Math.floor(Math.random() * 1000)}`;
+}
+
 async function run() {
   await linera.default();
+
   const faucet = await new linera.Faucet(import.meta.env.VITE_APP_URL);
   const wallet = await faucet.createWallet();
   const client = await new linera.Client(wallet);
-  document.getElementById("chain-id").innerText = await faucet.claimChain(
-    client
-  );
+
+  chainId = await faucet.claimChain(client);
+  document.getElementById("chain-id").innerText = chainId;
   counter = await client.frontend().application(COUNTER_APP_ID);
+  playerName = promptPlayerName();
+
+  await setupGame();
+  await fetchLeaderboard();
+
   count = 0;
   isLoading = false;
   showInstructions = true;
