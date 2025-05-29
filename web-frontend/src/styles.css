@@ -89,14 +89,30 @@ body::before {
 
 /* Linera Branding Styles */
 
+.linera-branding.bottom-left {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background: rgba(44, 62, 80, 0.9);
+  padding: 15px 20px;
+  border: 3px solid #1a252f;
+  box-shadow: 
+    3px 3px 0 #1a252f,
+    6px 6px 12px rgba(0,0,0,0.2);
+  animation: float 3s ease-in-out infinite;
+  z-index: 10;
+}
+
 .linera-branding.compact {
+  position: fixed;
+  bottom: 5px;
+  left: 5px;
   background: rgba(44, 62, 80, 0.9);
   padding: 10px 20px;
   border: 3px solid #1a252f;
   box-shadow: 
     3px 3px 0 #1a252f,
     6px 6px 12px rgba(0,0,0,0.2);
-  position: relative;
   animation: float 3s ease-in-out infinite;
   animation-delay: 0.5s; /* Slight delay for visual interest */
 }
