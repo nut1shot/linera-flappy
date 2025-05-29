@@ -9,12 +9,38 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  /* Classic Day Sky gradient */
+  background: linear-gradient(to bottom, 
+    #87CEEB 0%,      /* Sky blue */
+    #87CEEB 40%,     /* Extended sky */
+    #98D8E8 70%,     /* Lighter blue */
+    #B0E0E6 85%,     /* Powder blue */
+    #F0E68C 95%,     /* Slight horizon glow */
+    #FFE4B5 100%     /* Warm bottom */
+  );
   min-height: 100vh;
   margin: 0;
   font-family: 'Press Start 2P', cursive;
   font-size: 12px;
   color: #fff;
+  position: relative;
+}
+
+/* Subtle cloud texture overlay */
+body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    /* Soft cloud shapes */
+    radial-gradient(ellipse 600px 200px at 20% 30%, rgba(255,255,255,0.3), transparent),
+    radial-gradient(ellipse 500px 150px at 80% 20%, rgba(255,255,255,0.2), transparent),
+    radial-gradient(ellipse 400px 100px at 60% 60%, rgba(255,255,255,0.2), transparent);
+  pointer-events: none;
+  opacity: 0.6;
 }
 
 .main-container {
@@ -22,6 +48,8 @@ body {
   gap: 30px;
   align-items: flex-start;
   padding: 20px;
+  position: relative;
+  z-index: 1;
 }
 
 .game-section {
@@ -37,13 +65,175 @@ body {
   min-width: 300px;
 }
 
+/* Enhanced game title with sky theme */
+.game-title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 36px;
+  color: #FFF;
+  text-shadow: 
+    2px 2px 0 #2C3E50,
+    4px 4px 0 #34495E,
+    6px 6px 0 #3E5A7C,
+    8px 8px 12px rgba(0,0,0,0.3);
+  letter-spacing: 2px;
+  animation: float 3s ease-in-out infinite;
+  position: relative;
+  z-index: 1;
+  margin-bottom: 20px;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* Linera Branding Styles */
+
+.linera-branding.compact {
+  background: rgba(44, 62, 80, 0.9);
+  padding: 10px 20px;
+  border: 3px solid #1a252f;
+  box-shadow: 
+    3px 3px 0 #1a252f,
+    6px 6px 12px rgba(0,0,0,0.2);
+  position: relative;
+  animation: float 3s ease-in-out infinite;
+  animation-delay: 0.5s; /* Slight delay for visual interest */
+}
+
+/* Corner decorations for compact version */
+.linera-branding.compact::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 6px;
+  height: 6px;
+  background: #FFE4B5;
+  box-shadow: 
+    calc(100% + 0px) 0 0 #FF3300,
+    0 calc(100% + 0px) 0 #FF3300,
+    calc(100% + 0px) calc(100% + 0px) 0 #FF3300;
+}
+
+/* Adjustments for compact version */
+.linera-branding.compact .powered-by {
+  margin-bottom: 0; /* Remove bottom margin */
+}
+
+.linera-branding.compact .linera-text {
+  font-size: 18px; /* Slightly smaller than original */
+}
+
+.linera-branding.compact .linera-logo img {
+  width: 30px; /* Smaller logo for header */
+  height: 30px;
+}
+
+.linera-branding {
+  margin-top: 20px;
+  text-align: center;
+  background: rgba(44, 62, 80, 0.9);
+  padding: 15px 20px;
+  border: 3px solid #1a252f;
+  position: relative;
+}
+
+.linera-branding::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 6px;
+  height: 6px;
+  background: #FFE4B5;
+  box-shadow: 
+    calc(100% + 0px) 0 0 #FF3300,
+    0 calc(100% + 0px) 0 #FF3300,
+    calc(100% + 0px) calc(100% + 0px) 0 #FF3300;
+}
+
+.powered-by {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.powered-by > span {
+  font-size: 10px;
+  color: #87CEEB;
+  text-shadow: 1px 1px 0 #1a252f;
+}
+
+.linera-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.linera-logo img {
+  filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.linera-text {
+  font-size: 16px;
+  color: #FFF;
+  text-shadow: 
+    2px 2px 0 #FF3300,
+    3px 3px 8px rgba(255, 51, 0, 0.5);
+  letter-spacing: 1px;
+}
+
+.linera-tagline {
+  font-size: 9px;
+  color: #FFE4B5;
+  text-shadow: 1px 1px 0 #1a252f;
+  margin-top: 5px;
+}
+
+/* Linera badge in chain info */
+.linera-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #34495E;
+}
+
+.linera-badge img {
+  filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.3));
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.linera-badge span {
+  font-size: 10px;
+  color: #FFE4B5;
+  text-shadow: 1px 1px 0 #1a252f;
+}
+
+/* Pixel-perfect canvas with matching theme */
 canvas {
-  border: 3px solid #000;
+  border: 4px solid #2C3E50;
   background: #d9fbe6;
   display: block;
   margin: 0 auto;
   image-rendering: pixelated;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }
 
 .container {
@@ -55,33 +245,36 @@ canvas {
   position: relative;
 }
 
-.game-title {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 32px;
-  color: #ffcc00;
-  text-shadow: 3px 3px 0 #000;
-  margin-bottom: 20px;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-
+/* Info panels with cohesive theme */
 .player-info, .leaderboard-panel {
-  background: rgba(0, 0, 0, 0.8);
-  border: 2px solid #ffcc00;
-  border-radius: 8px;
+  background: #2C3E50;
+  border: 3px solid #1a252f;
+  border-radius: 0;
   padding: 15px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+/* Decorative corner pixels */
+.player-info::before, .leaderboard-panel::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 6px;
+  height: 6px;
+  background: #FFE4B5;
+  box-shadow: 
+    calc(100% + 0px) 0 0 #FFE4B5,
+    0 calc(100% + 0px) 0 #FFE4B5,
+    calc(100% + 0px) calc(100% + 0px) 0 #FFE4B5;
 }
 
 .player-info h3, .leaderboard-panel h3 {
-  color: #ffcc00;
+  color: #FFE4B5;
   margin-bottom: 15px;
   font-size: 14px;
   text-align: center;
+  text-shadow: 2px 2px 0 #1a252f;
 }
 
 .info-item {
@@ -92,16 +285,18 @@ canvas {
 }
 
 .info-item .label {
-  color: #aaa;
+  color: #87CEEB;
+  text-shadow: 1px 1px 0 #1a252f;
 }
 
 .info-item .value {
-  color: #fff;
+  color: #FFF;
   font-weight: bold;
+  text-shadow: 1px 1px 0 #1a252f;
 }
 
 #player-name {
-  color: #ffcc00;
+  color: #FFE4B5;
 }
 
 .leaderboard-list {
@@ -116,30 +311,53 @@ canvas {
   gap: 10px;
   padding: 8px;
   margin-bottom: 5px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+  background: rgba(135, 206, 235, 0.2);
+  border: 2px solid transparent;
   font-size: 9px;
   align-items: center;
+  position: relative;
+  transition: none;
+}
+
+.leaderboard-entry:hover {
+  background: rgba(135, 206, 235, 0.3);
+  border-color: #87CEEB;
+  transform: translateX(2px);
 }
 
 .leaderboard-entry.gold {
-  background: linear-gradient(135deg, #FFD700, #FFA500);
+  background: #FFD700;
+  border: 2px solid #B8860B;
   color: #000;
+  box-shadow: 
+    inset -2px -2px 0 #B8860B,
+    2px 2px 0 #B8860B;
 }
 
 .leaderboard-entry.silver {
-  background: linear-gradient(135deg, #C0C0C0, #B8B8B8);
+  background: #C0C0C0;
+  border: 2px solid #808080;
   color: #000;
+  box-shadow: 
+    inset -2px -2px 0 #808080,
+    2px 2px 0 #808080;
 }
 
 .leaderboard-entry.bronze {
-  background: linear-gradient(135deg, #CD7F32, #B87333);
+  background: #CD7F32;
+  border: 2px solid #8B4513;
   color: #000;
+  box-shadow: 
+    inset -2px -2px 0 #8B4513,
+    2px 2px 0 #8B4513;
 }
 
 .leaderboard-entry.current-player {
-  border: 2px solid #ffcc00;
-  background: rgba(255, 204, 0, 0.2);
+  border: 2px solid #FFE4B5;
+  background: rgba(255, 228, 181, 0.3);
+  box-shadow: 
+    0 0 0 1px #FFE4B5,
+    inset 0 0 10px rgba(255, 228, 181, 0.3);
 }
 
 .rank {
@@ -158,37 +376,60 @@ canvas {
   font-weight: bold;
 }
 
+/* Pixel-perfect button styling */
 .refresh-button {
   width: 100%;
-  padding: 8px;
+  padding: 10px;
   background: #4CAF50;
   color: #fff;
-  border: 2px solid #000;
-  border-radius: 4px;
+  border: none;
   font-family: 'Press Start 2P', cursive;
   font-size: 10px;
   cursor: pointer;
-  transition: all 0.3s;
+  position: relative;
+  box-shadow: 
+    0 4px 0 #2E7D32,
+    0 8px 0 #1B5E20,
+    0 12px 12px rgba(0,0,0,0.3);
+  transition: none;
+  text-shadow: 1px 1px 0 #1B5E20;
 }
 
 .refresh-button:hover {
-  background: #45a049;
+  background: #5CBF60;
   transform: translateY(-2px);
+  box-shadow: 
+    0 6px 0 #2E7D32,
+    0 10px 0 #1B5E20,
+    0 14px 16px rgba(0,0,0,0.3);
+}
+
+.refresh-button:active {
+  transform: translateY(4px);
+  box-shadow: 
+    0 2px 0 #2E7D32,
+    0 4px 0 #1B5E20,
+    0 6px 8px rgba(0,0,0,0.3);
 }
 
 .restart-button, .start-button {
   display: none;
   position: absolute;
-  padding: 10px 20px;
-  background-color: #ffcc00;
-  color: #000;
-  border: 3px solid #000;
+  padding: 12px 24px;
+  background-color: #FFE4B5;
+  color: #2C3E50;
+  border: none;
   font-family: 'Press Start 2P', cursive;
   font-size: 12px;
   cursor: pointer;
   text-transform: uppercase;
-  box-shadow: 4px 4px 0 #000;
-  transition: all 0.1s;
+  box-shadow: 
+    0 0 0 3px #2C3E50,
+    0 6px 0 #2C3E50,
+    0 12px 0 #1a252f,
+    0 12px 20px rgba(0,0,0,0.3);
+  transition: none;
+  text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
 }
 
 .restart-button {
@@ -204,29 +445,65 @@ canvas {
   z-index: 50;
 }
 
+.restart-button:hover, .start-button:hover {
+  background-color: #FFF;
+  transform: translate(-50%, -52%);
+}
+
 .restart-button:active, .start-button:active {
-  transform: translate(-50%, -50%) translateY(2px);
-  box-shadow: 2px 2px 0 #000;
+  transform: translate(-50%, -48%);
+  box-shadow: 
+    0 0 0 3px #2C3E50,
+    0 3px 0 #2C3E50,
+    0 6px 0 #1a252f,
+    0 6px 10px rgba(0,0,0,0.3);
 }
 
 .restart-button.show, .start-button.show {
   display: inline-block;
   opacity: 0;
-  animation: fadeIn 0.6s ease-in forwards;
+  animation: bounceIn 0.6s ease-out forwards;
 }
 
-@keyframes fadeIn {
-  to {
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  70% {
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  100% {
     opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
   }
 }
 
+/* Chain info styling */
 .chain-info {
-  background: rgba(0, 0, 0, 0.8);
-  border: 2px solid #666;
-  border-radius: 8px;
+  background: #2C3E50;
+  border: 3px solid #1a252f;
   padding: 15px;
   font-size: 9px;
+  position: relative;
+}
+
+/* Add Linera accent to chain info */
+.chain-info::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 6px;
+  height: 6px;
+  background: #FFE4B5;
+  box-shadow: 
+    calc(100% + 0px) 0 0 #FF3300,
+    0 calc(100% + 0px) 0 #FF3300,
+    calc(100% + 0px) calc(100% + 0px) 0 #FF3300;
 }
 
 .chain-id-text {
@@ -234,9 +511,14 @@ canvas {
   word-break: break-all;
   display: block;
   margin-top: 5px;
-  color: #aaa;
+  color: #87CEEB;
+  background: #1a252f;
+  padding: 5px;
+  border: 1px solid #34495E;
+  font-family: monospace;
 }
 
+/* Instructions with matching theme */
 .instructions {
   position: fixed;
   bottom: 20px;
@@ -244,44 +526,47 @@ canvas {
   transform: translateX(-50%);
   text-align: center;
   font-size: 9px;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.instructions p {
-  margin-bottom: 5px;
+  color: #2C3E50;
+  text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
 }
 
 .instructions kbd {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 2px 6px;
-  border-radius: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: #FFE4B5;
+  color: #2C3E50;
+  padding: 3px 8px;
+  border: 2px solid #2C3E50;
+  box-shadow: 
+    2px 2px 0 #2C3E50,
+    2px 2px 6px rgba(0,0,0,0.2);
+  font-family: 'Press Start 2P', cursive;
+  font-size: 8px;
 }
 
 .loading {
   text-align: center;
-  color: #aaa;
+  color: #87CEEB;
   padding: 20px;
   font-size: 10px;
+  text-shadow: 1px 1px 0 #1a252f;
 }
 
-/* Scrollbar styling */
+/* Custom scrollbar styling */
 .leaderboard-list::-webkit-scrollbar {
   width: 8px;
 }
 
 .leaderboard-list::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+  background: #1a252f;
+  border: 1px solid #34495E;
 }
 
 .leaderboard-list::-webkit-scrollbar-thumb {
-  background: #ffcc00;
-  border-radius: 4px;
+  background: #87CEEB;
+  border: 1px solid #1a252f;
 }
 
 .leaderboard-list::-webkit-scrollbar-thumb:hover {
-  background: #ffa500;
+  background: #98D8E8;
 }
 
 /* Responsive design */
@@ -298,5 +583,29 @@ canvas {
   
   .game-title {
     font-size: 24px;
+  }
+  
+  .player-info, .leaderboard-panel {
+    box-shadow: 
+      3px 3px 0 #1a252f,
+      6px 6px 12px rgba(0,0,0,0.2);
+  }
+  
+  .linera-branding {
+    margin-top: 15px;
+    padding: 12px 15px;
+  }
+  
+  .linera-logo img {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .linera-text {
+    font-size: 14px;
+  }
+  
+  .linera-tagline {
+    font-size: 8px;
   }
 }

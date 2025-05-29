@@ -81,7 +81,8 @@ function drawGameOver() {
   ctx.font = "bold 14px 'Press Start 2P', cursive";
   ctx.textAlign = "center";
   ctx.fillText(`SCORE: ${count}`, canvas.width / 2, y + imgHeight + 40);
-  ctx.fillText(`BEST: ${best}`, canvas.width / 2, y + imgHeight + 70);
+
+  if (best) ctx.fillText(`BEST: ${best}`, canvas.width / 2, y + imgHeight + 70);
 
   // Show rank if available
   if (myRank) {
@@ -95,7 +96,6 @@ async function setupGame() {
     const setupQuery = `mutation { setupGame(leaderboardChainId: "${LEADERBOARD_CHAIN_ID}",leaderboardName: "${playerName}") }`;
 
     const queryObject = { query: setupQuery };
-    console.log(JSON.stringify(queryObject));
     await counter.query(JSON.stringify(queryObject));
     console.log("Game setup completed with leaderboard:", LEADERBOARD_CHAIN_ID);
     isGameConfigured = true;
@@ -115,8 +115,7 @@ async function fetchLeaderboard() {
       const requestQuery = {
         query: "mutation { requestLeaderboard }",
       };
-      await counter.query(JSON.stringify(requestQuery));
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      counter.query(JSON.stringify(requestQuery));
     }
 
     const leaderboardQuery = {
@@ -185,8 +184,10 @@ function updateLeaderboardUI() {
 async function submitScoreToLeaderboard() {
   try {
     if (isGameConfigured) {
-      await counter.query('{ "query": "mutation { setBestAndSubmit }" }');
-      await fetchLeaderboard();
+      const setupQuery = `mutation { setBestAndSubmit(best: ${best}) }`;
+      const queryObject = { query: setupQuery };
+      await counter.query(JSON.stringify(queryObject));
+      fetchLeaderboard();
     }
   } catch (error) {
     console.error("Failed to submit score:", error);
@@ -198,14 +199,10 @@ async function resetGame() {
   pipes = [];
   frame = 0;
   gameOver = false;
-  best = await getBest();
   count = 0;
   showInstructions = true;
-
   document.getElementById("player-best").innerText = best;
 }
-
-let showLeaderboard = false;
 
 async function gameLoop() {
   drawBackground();
@@ -253,7 +250,7 @@ async function gameLoop() {
       pipe.passed = true;
       count++;
       audioPoint.play();
-      counter.query('{ "query": "mutation { increment(value: 1) }" }');
+      // counter.query('{ "query": "mutation { increment(value: 1) }" }');
     }
 
     if (pipe.collides(bird)) {
@@ -280,10 +277,13 @@ async function gameLoop() {
   if (!gameOver) {
     requestAnimationFrame(gameLoop);
   } else {
-    await submitScoreToLeaderboard();
-    best = await getBest();
-    document.getElementById("player-best").innerText = best;
+    if (count > best) {
+      best = count;
+      await submitScoreToLeaderboard();
+    }
+
     drawGameOver();
+    document.getElementById("player-best").innerText = best;
     restartBtn.classList.add("show");
   }
 
@@ -291,7 +291,7 @@ async function gameLoop() {
 }
 
 canvas.addEventListener("click", () => {
-  if (isLoading || showLeaderboard) return;
+  if (isLoading) return;
   if (!gameOver) {
     bird.jump();
     audioJump.play();
@@ -325,7 +325,7 @@ startBtn.addEventListener("click", () => {
 
 const refreshBtn = document.getElementById("refreshBtn");
 refreshBtn.addEventListener("click", async () => {
-  await fetchLeaderboard();
+  fetchLeaderboard();
 });
 
 function promptPlayerName() {
@@ -349,7 +349,7 @@ async function run() {
   playerName = promptPlayerName();
 
   await setupGame();
-  await fetchLeaderboard();
+  fetchLeaderboard();
 
   count = 0;
   isLoading = false;
