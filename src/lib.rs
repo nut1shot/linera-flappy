@@ -28,7 +28,9 @@ pub enum Operation {
     Increment {
         value: u64,
     },
-    SetBestAndSubmit,
+    SetBestAndSubmit {
+        best: u64,
+    },
     RequestLeaderboard,
     // Setup operation to configure the game (only works once)
     SetupGame {

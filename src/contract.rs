@@ -76,29 +76,23 @@ impl Contract for FlappyContract {
                 // from the json-argument, so we don't need to update it here
             }
 
-            Operation::SetBestAndSubmit => {
-                let current = *self.state.value.get();
-                let best = *self.state.best.get();
+            Operation::SetBestAndSubmit { best } => {
+                self.state.best.set(best);
 
-                // Update best score if current is higher
-                if current > best {
-                    self.state.best.set(current);
+                // Only submit if we're NOT the leaderboard chain and leaderboard is set
+                if !*self.state.is_leaderboard_chain.get() {
+                    if let Some(leaderboard_id) = self.state.leaderboard_chain_id.get() {
+                        let player_name = self.state.player_name.get().clone();
 
-                    // Only submit if we're NOT the leaderboard chain and leaderboard is set
-                    if !*self.state.is_leaderboard_chain.get() {
-                        if let Some(leaderboard_id) = self.state.leaderboard_chain_id.get() {
-                            let player_name = self.state.player_name.get().clone();
+                        let message = FlappyMessage::SubmitScore {
+                            player_name,
+                            score: best,
+                            chain_id: self.runtime.chain_id(),
+                        };
 
-                            let message = FlappyMessage::SubmitScore {
-                                player_name,
-                                score: current,
-                                chain_id: self.runtime.chain_id(),
-                            };
-
-                            self.runtime
-                                .prepare_message(message)
-                                .send_to(*leaderboard_id);
-                        }
+                        self.runtime
+                            .prepare_message(message)
+                            .send_to(*leaderboard_id);
                     }
                 }
 
