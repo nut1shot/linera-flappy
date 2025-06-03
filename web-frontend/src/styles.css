@@ -316,7 +316,7 @@ canvas {
 }
 
 .leaderboard-list {
-  max-height: 300px;
+  max-height: 133px;
   overflow-y: auto;
   margin-bottom: 10px;
 }
@@ -333,12 +333,6 @@ canvas {
   align-items: center;
   position: relative;
   transition: none;
-}
-
-.leaderboard-entry:hover {
-  background: rgba(135, 206, 235, 0.3);
-  border-color: #87CEEB;
-  transform: translateX(2px);
 }
 
 .leaderboard-entry.gold {
