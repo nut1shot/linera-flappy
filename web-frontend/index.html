@@ -8,9 +8,280 @@
   <link rel="stylesheet" href="./src/styles.css" />
 </head>
 <body>
-  <div class="game-title">Linera Flappy</div>
+  <!-- Initial Loading Screen -->
+  <div id="initial-loading" class="initial-loading">
+    <div class="game-title">Linera Flappy</div>
+    
+    <div class="loading-container">
+      <div class="linera-logo-loading">
+        <img src="/assets/linera-logo.png" alt="Linera" width="80" height="80" />
+      </div>
+      
+      <div class="loading-text" id="loading-text">Initializing Linera client...</div>
+      
+      <div class="loading-bar-container">
+        <div class="loading-bar">
+          <div class="loading-progress" id="loading-progress"></div>
+        </div>
+        <div class="loading-percentage" id="loading-percentage">0%</div>
+      </div>
+      
+      <div class="loading-steps" id="loading-steps">
+        <div class="step pending" id="step-0">
+          <span class="step-icon">○</span>
+          <span class="step-text">Initialize client</span>
+        </div>
+        <div class="step pending" id="step-1">
+          <span class="step-icon">○</span>
+          <span class="step-text">Create wallet</span>
+        </div>
+        <div class="step pending" id="step-2">
+          <span class="step-icon">○</span>
+          <span class="step-text">Claim chain</span>
+        </div>
+        <div class="step pending" id="step-3">
+          <span class="step-icon">○</span>
+          <span class="step-text">Setup game</span>
+        </div>
+        <div class="step pending" id="step-4">
+          <span class="step-icon">○</span>
+          <span class="step-text">Ready to play</span>
+        </div>
+      </div>
+      
+      <div class="loading-error" id="loading-error" style="display: none;">
+        <div class="error-message" id="error-message">Connection failed</div>
+        <button class="retry-button" id="retry-button">Retry Connection</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Username Input Modal -->
+  <div id="username-modal" class="username-modal" style="display: none;">
+    <div class="username-modal-content">
+      <h2>Welcome to Linera Flappy!</h2>
+      
+      <div class="username-form">
+        <label for="username-input">Enter Your Player Name</label>
+        <input type="text" id="username-input" class="username-input" maxlength="20" placeholder="Enter your name..." />
+        
+        <div class="username-validation" id="username-validation" style="display: none;">
+          <div class="validation-message" id="validation-message">Name is required</div>
+        </div>
+        
+        <div class="username-info">
+          <div class="info-item">
+            <span class="info-icon">ℹ</span>
+            <span class="info-text">Maximum 20 characters</span>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">🎮</span>
+            <span class="info-text">This name will appear on leaderboards</span>
+          </div>
+        </div>
+        
+        <div class="username-actions">
+          <button id="random-name-btn" class="random-name-button">Random Name</button>
+          <button id="confirm-name-btn" class="confirm-name-button">Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tournament Leaderboard Modal -->
+  <div id="tournament-leaderboard-modal" class="tournament-leaderboard-modal" style="display: none;">
+    <div class="tournament-leaderboard-content">
+      <div class="tournament-leaderboard-header">
+        <h2 id="tournament-leaderboard-title">Tournament Leaderboard</h2>
+        <button id="close-tournament-leaderboard" class="close-modal-btn">✕</button>
+      </div>
+      
+      <div class="tournament-leaderboard-info">
+        <div class="tournament-meta-info">
+          <div class="meta-item">
+            <span class="meta-label">Tournament:</span>
+            <span id="modal-tournament-name" class="meta-value">Summer Championship</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Status:</span>
+            <span id="modal-tournament-status" class="meta-value status-active">Active</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Players:</span>
+            <span id="modal-tournament-players" class="meta-value">42</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Time Left:</span>
+            <span id="modal-tournament-time-left" class="meta-value">2d 14h 23m</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="tournament-leaderboard-controls">
+        <div class="leaderboard-actions">
+          <button id="join-tournament-from-modal" class="join-tournament-btn">
+            JOIN TOURNAMENT
+          </button>
+          <button id="refresh-tournament-leaderboard" class="refresh-leaderboard-btn">
+            ↻ Refresh
+          </button>
+        </div>
+      </div>
+      
+      <div class="tournament-leaderboard-table">
+        <div class="leaderboard-header">
+          <div class="header-rank">#</div>
+          <div class="header-player">Player</div>
+          <div class="header-score">Best Score</div>
+        </div>
+        
+        <div id="tournament-leaderboard-entries" class="leaderboard-entries">
+          <!-- Leaderboard entries will be populated here -->
+          <div class="leaderboard-loading">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading tournament leaderboard...</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="tournament-leaderboard-footer">
+        <div class="my-position" id="my-tournament-position" style="display: none;">
+          <span class="position-label">Your Position:</span>
+          <span class="position-rank">#12</span>
+          <span class="position-score">47 points</span>
+        </div>
+        
+        <div class="modal-actions">
+          <button id="close-tournament-leaderboard-footer" class="modal-action-btn secondary">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="game-title" id="main-title" style="display: none;">Linera Flappy</div>
   
-  <div class="main-container">
+  <!-- Mode Selection Screen -->
+  <div id="mode-selection" class="mode-selection" style="display: none;">
+    <h2>Select Game Mode</h2>
+    
+    <button class="mode-button practice" id="practice-mode-btn">
+      <span class="mode-icon">🎮</span>
+      PRACTICE MODE
+      <div class="mode-description">
+        Free play mode<br>
+        Improve your skills and compete on the global leaderboard
+      </div>
+    </button>
+    
+    <button class="mode-button tournament" id="tournament-mode-btn">
+      <span class="mode-icon">🏆</span>
+      TOURNAMENT MODE
+      <div class="mode-description">
+        Compete in time-limited tournaments<br>
+        Win prizes and climb the championship ranks
+      </div>
+    </button>
+  </div>
+
+  <!-- Tournament Creation Form -->
+  <div id="tournament-creation" class="tournament-creation" style="display: none;">
+    <h2>Create Tournament</h2>
+    
+    <form id="tournament-form" class="tournament-form">
+      <div class="form-section">
+        <h3>Basic Information</h3>
+        
+        <div class="form-group">
+          <label for="tournament-name-input">Tournament Name</label>
+          <input type="text" id="tournament-name-input" class="form-input" maxlength="50" placeholder="Summer Championship" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="tournament-description">Description</label>
+          <textarea id="tournament-description" class="form-textarea" maxlength="200" placeholder="An exciting tournament for all skill levels..."></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="tournament-category">Category</label>
+          <select id="tournament-category" class="form-select" required>
+            <option value="">Select Category</option>
+            <option value="beginner">Beginner (0-25 points)</option>
+            <option value="intermediate">Intermediate (26-50 points)</option>
+            <option value="advanced">Advanced (51-100 points)</option>
+            <option value="pro">Pro (100+ points)</option>
+            <option value="open">Open (All levels)</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-section">
+        <h3>Schedule</h3>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="start-date">Start Date</label>
+            <input type="date" id="start-date" class="form-input" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="start-time">Start Time</label>
+            <input type="time" id="start-time" class="form-input" required>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="end-date">End Date</label>
+            <input type="date" id="end-date" class="form-input" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="end-time">End Time</label>
+            <input type="time" id="end-time" class="form-input" required>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="duration-preset">Quick Duration</label>
+          <select id="duration-preset" class="form-select">
+            <option value="">Custom Duration</option>
+            <option value="1hour">1 Hour</option>
+            <option value="6hours">6 Hours</option>
+            <option value="1day">1 Day</option>
+            <option value="3days">3 Days</option>
+            <option value="1week">1 Week</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-actions">
+        <button type="button" id="cancel-tournament" class="cancel-button">Cancel</button>
+        <button type="submit" class="create-button">Create Tournament</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Tournament List Screen -->
+  <div id="tournament-list" class="tournament-list" style="display: none;">
+    <h2>Available Tournaments</h2>
+    
+    <div id="tournament-list-container" class="tournament-list-container">
+      <!-- Tournaments will be populated here -->
+    </div>
+    
+    <div class="tournament-actions">
+      <button id="create-tournament-btn" class="admin-only create-tournament-btn" style="display: none;">
+        CREATE TOURNAMENT
+      </button>
+      <button id="back-to-mode-btn" class="back-button">
+        ← BACK TO MODES
+      </button>
+    </div>
+  </div>
+  
+  <div id="main-container" class="main-container" style="display: none;">
     <div class="game-section">
       <div class="container">
         <canvas id="gameCanvas" width="288" height="512"></canvas>
@@ -20,11 +291,24 @@
     </div>
 
     <div class="info-section">
+      <!-- Current Mode Indicator -->
+      <div class="current-mode-info">
+        <div class="mode-indicator">
+          <span class="mode-label">Mode:</span>
+          <span id="current-mode" class="mode-value">Practice</span>
+        </div>
+        <button id="change-mode-btn" class="change-mode-btn">Change Mode</button>
+      </div>
+
       <div class="player-info">
         <h3>Player Info</h3>
         <div class="info-item">
           <span class="label">Name:</span>
           <span id="player-name" class="value">Loading...</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Role:</span>
+          <span id="player-role" class="value">Player</span>
         </div>
         <div class="info-item">
           <span class="label">Best:</span>
@@ -36,8 +320,25 @@
         </div>
       </div>
 
+      <!-- Tournament Info Panel (shown only in tournament mode) -->
+      <div id="tournament-info" class="tournament-info" style="display: none;">
+        <h3 id="tournament-name">Tournament Name</h3>
+        <div class="info-item">
+          <span class="label">Status:</span>
+          <span id="tournament-status" class="value">Active</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Time Left:</span>
+          <span id="tournament-time-left" class="value">2d 14h 23m</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Players:</span>
+          <span id="tournament-players" class="value">42</span>
+        </div>
+      </div>
+
       <div class="leaderboard-panel">
-        <h3>Top Players</h3>
+        <h3 id="leaderboard-title">Top Players</h3>
         <div id="leaderboard-list" class="leaderboard-list">
           <div class="loading">Loading...</div>
         </div>
@@ -46,8 +347,9 @@
 
       <div class="chain-info">
         <div class="linera-badge">
+          <span>Powered by</span>
           <img src="/assets/linera-logo.png" alt="Linera" width="20" height="20" />
-          <span>Linera Chain</span>
+          <span>Linera Game on Microchain</span>
         </div>
         <div class="info-item">
           <span class="label">Chain ID:</span>
@@ -55,22 +357,6 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <div class="instructions">
-    <p><kbd>SPACE</kbd> or <kbd>TAP</kbd> to fly</p>
-  </div>
-
-  <!-- Linera branding section -->
-  <div class="linera-branding compact">
-    <div class="powered-by">
-      <span>Powered by</span>
-      <div class="linera-logo">
-        <img src="/assets/linera-logo.png" alt="Linera" width="40" height="40" />
-        <span class="linera-text">Linera</span>
-      </div>
-    </div>
-    <div class="linera-tagline">Game on Microchain</div>
   </div>
 
   <script type="importmap">
