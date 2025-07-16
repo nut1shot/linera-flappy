@@ -216,7 +216,20 @@ class FlappyGame {
         
         // Show error UI for blockchain connection failures
         if (i === 1) { // Blockchain connection step
-          this.showLoadingError("Failed to connect to blockchain. Please check your connection and try again.");
+          const appUrl = import.meta.env.VITE_APP_URL || 'Not configured';
+          const appId = import.meta.env.VITE_APP_ID || 'Not configured';
+          const errorMsg = `Failed to connect to Linera blockchain.
+
+Configuration:
+• Service URL: ${appUrl}
+• App ID: ${appId}
+
+Please check:
+1. Is the Linera service running?
+2. Is the service URL correct in .env?
+3. Is the App ID valid?
+4. Check browser console for details.`;
+          this.showLoadingError(errorMsg);
           return;
         }
         
@@ -286,7 +299,13 @@ class FlappyGame {
     const errorMessage = document.getElementById("error-message");
     
     if (errorElement && errorMessage) {
-      errorMessage.textContent = message;
+      // Use innerHTML for multi-line messages, but escape HTML to prevent XSS
+      const escapedMessage = message
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n/g, '<br>');
+      errorMessage.innerHTML = escapedMessage;
       errorElement.style.display = "block";
     }
   }

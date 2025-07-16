@@ -1,3 +1,298 @@
+/* Authentication Modal Styles */
+.auth-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.auth-modal-inner {
+  background: linear-gradient(135deg, #2C3E50 0%, #34495E 100%);
+  border: 4px solid #87CEEB;
+  border-radius: 16px;
+  padding: 32px;
+  width: 90%;
+  max-width: 480px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+.auth-modal-inner::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  background: #87CEEB;
+  border-radius: 16px;
+  z-index: -1;
+}
+
+.auth-modal-content h2 {
+  color: #FFE4B5;
+  text-align: center;
+  margin-bottom: 24px;
+  font-size: 20px;
+  text-shadow: 2px 2px 0 #1a252f;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  color: #FFE4B5;
+  font-size: 12px;
+  font-weight: bold;
+  text-shadow: 1px 1px 0 #1a252f;
+}
+
+.form-input {
+  padding: 12px;
+  border: 2px solid #34495E;
+  border-radius: 8px;
+  background: rgba(44, 62, 80, 0.9);
+  color: #FFE4B5;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #87CEEB;
+  box-shadow: 0 0 0 2px rgba(135, 206, 235, 0.2);
+}
+
+.password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #87CEEB;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.password-toggle:hover {
+  background: rgba(135, 206, 235, 0.1);
+}
+
+.auth-validation {
+  background: rgba(231, 76, 60, 0.1);
+  border: 2px solid #E74C3C;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.validation-message {
+  color: #E74C3C;
+  font-size: 12px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.auth-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.primary-auth-button {
+  background: linear-gradient(135deg, #87CEEB 0%, #5DADE2 100%);
+  color: #2C3E50;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.primary-auth-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(135, 206, 235, 0.3);
+}
+
+.primary-auth-button:active {
+  transform: translateY(0);
+}
+
+.secondary-auth-button {
+  background: transparent;
+  color: #87CEEB;
+  border: 2px solid #87CEEB;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.secondary-auth-button:hover {
+  background: rgba(135, 206, 235, 0.1);
+  transform: translateY(-1px);
+}
+
+.auth-info {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #BDC3C7;
+  font-size: 10px;
+}
+
+.info-icon {
+  color: #87CEEB;
+  font-size: 12px;
+}
+
+.demo-info {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #34495E;
+}
+
+.demo-accounts h4 {
+  color: #FFE4B5;
+  font-size: 12px;
+  margin-bottom: 12px;
+  text-align: center;
+  text-shadow: 1px 1px 0 #1a252f;
+}
+
+.demo-account {
+  background: rgba(44, 62, 80, 0.5);
+  border: 1px solid #34495E;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  font-size: 10px;
+  color: #BDC3C7;
+  text-align: center;
+}
+
+.demo-account strong {
+  color: #87CEEB;
+}
+
+@media (max-width: 768px) {
+  .auth-modal-inner {
+    padding: 24px;
+    width: 95%;
+    max-width: none;
+  }
+  
+  .auth-modal-content h2 {
+    font-size: 18px;
+  }
+  
+  .form-input {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .auth-actions {
+    gap: 16px;
+  }
+  
+  .primary-auth-button,
+  .secondary-auth-button {
+    padding: 16px 24px;
+    font-size: 16px;
+  }
+}
+
+/* Logout Button Styles */
+.player-actions {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #34495E;
+  display: flex;
+  justify-content: center;
+}
+
+.logout-button {
+  background: linear-gradient(135deg, #E74C3C 0%, #C0392B 100%);
+  color: #FFE4B5;
+  border: 2px solid #E74C3C;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: inherit;
+}
+
+.logout-button::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 4px;
+  height: 4px;
+  background: #E74C3C;
+  border-radius: 2px;
+}
+
+.logout-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+  background: linear-gradient(135deg, #C0392B 0%, #A93226 100%);
+}
+
+.logout-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
+}
+
+@media (max-width: 768px) {
+  .logout-button {
+    padding: 12px 20px;
+    font-size: 12px;
+  }
+}
+
 .tournament-card.ending-soon {
   border-color: #FF6B35;
   background: rgba(255, 107, 53, 0.2);
@@ -5,6 +300,54 @@
 
 .tournament-card.ending-soon::before {
   background: #FF6B35;
+}
+
+/* Pinned Tournament Styling */
+.tournament-card.pinned {
+  border-left: 4px solid #FFD700;
+  background: linear-gradient(135deg, 
+    rgba(255, 215, 0, 0.1) 0%, 
+    rgba(255, 215, 0, 0.05) 100%);
+  position: relative;
+}
+
+.tournament-card.pinned::after {
+  content: "📌 PINNED";
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  font-size: 8px;
+  color: #FFD700;
+  font-weight: bold;
+  text-shadow: 1px 1px 0 #1a252f;
+  letter-spacing: 0.5px;
+  z-index: 5;
+}
+
+/* Adjust pinned card admin controls to avoid overlap with pinned label */
+.tournament-card.pinned .tournament-admin-controls {
+  top: 32px;
+}
+
+/* Push tournament name down to avoid overlap with PINNED label */
+.tournament-card.pinned .tournament-name {
+  margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+  .tournament-card.pinned::after {
+    font-size: 9px;
+    top: 6px;
+    left: 10px;
+  }
+  
+  .tournament-card.pinned .tournament-admin-controls {
+    top: 28px;
+  }
+  
+  .tournament-card.pinned .tournament-name {
+    margin-top: 18px; /* Slightly less on mobile */
+  }
 }
 
 .tournament-name {
@@ -51,6 +394,24 @@
   position: relative;
 }
 
+/* Mobile admin controls fix */
+@media (max-width: 768px) {
+  .tournament-admin-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    gap: 6px !important;
+    z-index: 10;
+  }
+  
+  .admin-icon-btn {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 16px !important;
+    border-width: 3px !important;
+  }
+}
+
 .admin-icon-btn::before {
   content: '';
   position: absolute;
@@ -71,6 +432,24 @@
   transform: translateY(0px);
   box-shadow: 
     0 2px 0 #2C3E50, 0 3px 4px rgba(0,0,0,0.3);
+}
+
+.pin-icon-btn {
+  border-color: #87CEEB;
+  background: rgba(135, 206, 235, 0.1);
+}
+
+.pin-icon-btn::before {
+  background: #87CEEB;
+}
+
+.pin-icon-btn.pinned {
+  border-color: #FFD700;
+  background: rgba(255, 215, 0, 0.2);
+}
+
+.pin-icon-btn.pinned::before {
+  background: #FFD700;
 }
 
 .edit-icon-btn {
@@ -658,12 +1037,14 @@ canvas {
 }
 
 .container {
-  width: 288px;
+  max-width: 288px;
+  width: 100%;
   padding: 0;
   background: none;
   box-shadow: none;
   text-align: center;
   position: relative;
+  margin: 0 auto;
 }
 
 .current-mode-info {
@@ -2085,4 +2466,444 @@ body::before {
 
 .tournament-card.active::before {
   background: #4CAF50;
+}
+
+/* ===== MOBILE OPTIMIZATIONS ===== */
+
+/* Mobile-friendly touch targets */
+.mobile-touch-target {
+  min-width: 44px \!important;
+  min-height: 44px \!important;
+  padding: 8px \!important;
+}
+
+/* Enhanced button sizes for mobile */
+.admin-icon-btn.mobile-touch-target {
+  width: 44px \!important;
+  height: 44px \!important;
+  font-size: 18px \!important;
+  margin: 2px \!important;
+}
+
+.close-modal-btn.mobile-touch-target {
+  width: 48px \!important;
+  height: 48px \!important;
+  font-size: 18px \!important;
+}
+
+.tournament-action-btn.mobile-touch-target {
+  font-size: 12px \!important;
+  padding: 12px 16px \!important;
+  min-height: 44px \!important;
+}
+
+/* Mobile canvas container */
+.game-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+#gameCanvas {
+  max-width: 85vw;
+  max-height: 60vh;
+  width: auto;
+  height: auto;
+  touch-action: manipulation;
+  object-fit: contain;
+}
+
+/* Mobile responsive breakpoints */
+@media (max-width: 768px) {
+  
+  /* Prevent viewport overflow */
+  body {
+    overflow-x: hidden;
+  }
+  
+  .main-container {
+    width: 100vw;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    flex-direction: column !important;
+  }
+  
+  .game-section {
+    width: 100%;
+    max-width: 100%;
+    padding: 5px;
+    margin: 0;
+    flex: none;
+  }
+  
+  .info-section {
+    width: 100%;
+    max-width: 100%;
+    padding: 10px;
+    margin: 0;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+  
+  .container {
+    max-width: 100%;
+    width: 100%;
+    padding: 0 5px;
+    box-sizing: border-box;
+  }
+  
+  #gameCanvas {
+    max-width: 80vw !important;
+    max-height: 55vh !important;
+  }
+  
+  /* Increase font sizes for mobile readability */
+  .tournament-meta {
+    font-size: 12px \!important;
+  }
+  
+  .info-item {
+    font-size: 12px \!important;
+  }
+  
+  .step {
+    font-size: 12px \!important;
+  }
+  
+  .loading-text {
+    font-size: 14px \!important;
+  }
+  
+  .meta-item {
+    font-size: 12px \!important;
+  }
+  
+  /* Modal improvements for mobile */
+  .username-modal-content,
+  .tournament-leaderboard-content {
+    width: 95vw \!important;
+    max-width: 400px \!important;
+    margin: 10px \!important;
+    padding: 20px \!important;
+  }
+  
+  /* Tournament List Mobile Fixes */
+  .tournament-list {
+    width: 95vw \!important;
+    max-width: 95vw \!important;
+    padding: 20px 15px \!important;
+    margin: 10px auto \!important;
+    box-sizing: border-box;
+  }
+  
+  .tournament-list-container {
+    max-height: 50vh \!important;
+    width: 100% \!important;
+    padding: 0 \!important;
+  }
+  
+  .tournament-card {
+    padding: 15px \!important;
+    margin-bottom: 12px \!important;
+    width: 100% \!important;
+    box-sizing: border-box;
+    position: relative;
+  }
+  
+  /* Fix tournament meta overlapping on mobile */
+  .tournament-meta {
+    display: flex \!important;
+    flex-direction: column \!important;
+    gap: 12px \!important;
+    font-size: 11px \!important;
+    width: 100% \!important;
+  }
+  
+  .tournament-meta .info-item {
+    display: flex \!important;
+    justify-content: space-between \!important;
+    width: 100% \!important;
+    min-height: 24px \!important;
+    align-items: center \!important;
+    padding: 4px 0 \!important;
+    border-bottom: 1px solid rgba(52, 73, 94, 0.3) \!important;
+  }
+  
+  .tournament-meta .info-item .label {
+    flex: 0 0 auto \!important;
+    margin-right: 10px \!important;
+  }
+  
+  .tournament-meta .info-item .value {
+    flex: 1 1 auto \!important;
+    text-align: right \!important;
+    word-break: break-word \!important;
+  }
+  
+  /* Tournament Creation Mobile Fixes */
+  .tournament-creation {
+    width: 95vw \!important;
+    max-width: 95vw \!important;
+    padding: 20px 15px \!important;
+    margin: 10px auto \!important;
+    max-height: 85vh \!important;
+    box-sizing: border-box;
+  }
+  
+  .tournament-form {
+    gap: 20px \!important;
+  }
+  
+  .form-section {
+    padding: 15px \!important;
+  }
+  
+  /* Fix overlapping date/time inputs on mobile */
+  .form-row {
+    display: flex \!important;
+    flex-direction: column \!important;
+    gap: 20px \!important;
+    width: 100% \!important;
+  }
+  
+  .form-row .form-group {
+    width: 100% \!important;
+    margin-bottom: 0 \!important;
+    flex: none \!important;
+  }
+  
+  .form-group {
+    width: 100% \!important;
+    margin-bottom: 15px \!important;
+  }
+  
+  .form-group label {
+    display: block \!important;
+    width: 100% \!important;
+    margin-bottom: 8px \!important;
+    font-size: 12px \!important;
+  }
+  
+  .form-input, .form-textarea, .form-select {
+    font-size: 12px \!important;
+    padding: 10px \!important;
+    width: 100% \!important;
+    box-sizing: border-box;
+  }
+  
+  .form-actions {
+    flex-direction: column \!important;
+    gap: 10px \!important;
+  }
+  
+  .cancel-button, .create-button {
+    width: 100% \!important;
+    min-height: 48px \!important;
+    font-size: 12px \!important;
+  }
+  
+  .tournament-name {
+    font-size: 16px \!important;
+  }
+  
+  /* Button improvements */
+  .mode-button {
+    min-height: 60px \!important;
+    padding: 15px \!important;
+    font-size: 14px \!important;
+  }
+  
+  .start-button,
+  .restart-button {
+    min-height: 50px \!important;
+    font-size: 16px \!important;
+    padding: 12px 24px \!important;
+  }
+  
+  /* Navigation improvements */
+  .tournament-actions {
+    gap: 15px \!important;
+    padding: 20px \!important;
+  }
+  
+  .back-button,
+  .create-tournament-btn {
+    min-height: 48px \!important;
+    font-size: 14px \!important;
+    padding: 12px 20px \!important;
+  }
+}
+
+@media (max-width: 480px) {
+  
+  /* Extra small mobile devices */
+  .username-modal-content,
+  .tournament-leaderboard-content {
+    width: 98vw \!important;
+    margin: 5px \!important;
+    padding: 15px \!important;
+  }
+  
+  .tournament-list {
+    width: 98vw \!important;
+    max-width: 98vw \!important;
+    padding: 15px 10px \!important;
+    margin: 5px auto \!important;
+  }
+  
+  .tournament-creation {
+    width: 98vw \!important;
+    max-width: 98vw \!important;
+    padding: 15px 10px \!important;
+    margin: 5px auto \!important;
+    max-height: 90vh \!important;
+  }
+  
+  .tournament-meta {
+    display: flex \!important;
+    flex-direction: column \!important;
+    gap: 12px \!important;
+    font-size: 11px \!important;
+    width: 100% \!important;
+  }
+  
+  .tournament-meta .info-item {
+    display: flex \!important;
+    justify-content: space-between \!important;
+    width: 100% \!important;
+    min-height: 24px \!important;
+    align-items: center \!important;
+    padding: 4px 0 \!important;
+    border-bottom: 1px solid rgba(52, 73, 94, 0.3) \!important;
+  }
+  
+  .tournament-meta .info-item .label {
+    flex: 0 0 auto \!important;
+    margin-right: 10px \!important;
+  }
+  
+  .tournament-meta .info-item .value {
+    flex: 1 1 auto \!important;
+    text-align: right \!important;
+    word-break: break-word \!important;
+  }
+  
+  .game-title {
+    font-size: 18px \!important;
+  }
+  
+  .tournament-card-actions {
+    flex-direction: column \!important;
+    gap: 10px \!important;
+  }
+  
+  .tournament-action-btn {
+    width: 100% \!important;
+    font-size: 10px \!important;
+    padding: 12px 8px \!important;
+  }
+  
+  .tournament-card {
+    padding: 12px \!important;
+  }
+  
+  .form-section {
+    padding: 12px \!important;
+  }
+  
+  .form-input, .form-textarea, .form-select {
+    font-size: 10px \!important;
+    padding: 8px \!important;
+  }
+}
+
+/* Additional mobile layout fixes */
+@media screen and (max-width: 768px) {
+  
+  /* Force tournament meta to stack vertically */
+  .tournament-card .tournament-meta {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    grid-template-columns: none !important;
+  }
+  
+  .tournament-card .tournament-meta .info-item {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+  }
+  
+  /* Force form rows to stack vertically */
+  .tournament-form .form-row {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+  }
+  
+  .tournament-form .form-row .form-group {
+    width: 100% !important;
+    margin-bottom: 15px !important;
+  }
+}
+
+/* Touch-specific optimizations */
+@media (hover: none) and (pointer: coarse) {
+  
+  /* Remove hover effects on touch devices */
+  .mode-button:hover,
+  .tournament-action-btn:hover,
+  .admin-icon-btn:hover {
+    transform: none \!important;
+  }
+  
+  /* Add touch feedback */
+  .mobile-touch-target:active {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  
+  /* Ensure touch targets are adequately spaced */
+  .tournament-admin-controls {
+    gap: 12px \!important;
+  }
+}
+
+/* Landscape orientation optimizations */
+@media (orientation: landscape) and (max-height: 500px) {
+  
+  .initial-loading {
+    padding: 10px \!important;
+  }
+  
+  .game-title {
+    font-size: 16px \!important;
+    margin-bottom: 10px \!important;
+  }
+  
+  .loading-container {
+    gap: 15px \!important;
+  }
+  
+  #gameCanvas {
+    max-height: 80vh \!important;
+  }
+}
+
+/* High DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  
+  /* Ensure crisp rendering on high DPI displays */
+  .game-title,
+  .mode-button,
+  .tournament-name {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }

@@ -2,14 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover"/>
   <title>Linera Flappy</title>
+  
+  <!-- Mobile Web App Meta Tags -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Linera Flappy">
+  <meta name="theme-color" content="#87CEEB">
+  
+  <!-- Prevent zoom on double tap -->
+  <meta name="format-detection" content="telephone=no">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./src/styles.css" />
 </head>
 <body>
   <!-- Initial Loading Screen -->
-  <div id="initial-loading" class="initial-loading">
+  <div id="initial-loading-screen" class="initial-loading" style="display: flex;">
     <div class="game-title">Linera Flappy</div>
     
     <div class="loading-container">
@@ -17,7 +27,7 @@
         <img src="/assets/linera-logo.png" alt="Linera" width="80" height="80" />
       </div>
       
-      <div class="loading-text" id="loading-text">Initializing Linera client...</div>
+      <div class="loading-text" id="loading-text">Loading game...</div>
       
       <div class="loading-bar-container">
         <div class="loading-bar">
@@ -29,23 +39,15 @@
       <div class="loading-steps" id="loading-steps">
         <div class="step pending" id="step-0">
           <span class="step-icon">○</span>
-          <span class="step-text">Initialize client</span>
+          <span class="step-text">Loading assets</span>
         </div>
         <div class="step pending" id="step-1">
           <span class="step-icon">○</span>
-          <span class="step-text">Create wallet</span>
+          <span class="step-text">Connecting to blockchain</span>
         </div>
         <div class="step pending" id="step-2">
           <span class="step-icon">○</span>
-          <span class="step-text">Claim chain</span>
-        </div>
-        <div class="step pending" id="step-3">
-          <span class="step-icon">○</span>
-          <span class="step-text">Setup game</span>
-        </div>
-        <div class="step pending" id="step-4">
-          <span class="step-icon">○</span>
-          <span class="step-text">Ready to play</span>
+          <span class="step-text">Setting up game</span>
         </div>
       </div>
       
@@ -56,33 +58,96 @@
     </div>
   </div>
 
-  <!-- Username Input Modal -->
-  <div id="username-modal" class="username-modal" style="display: none;">
-    <div class="username-modal-content">
-      <h2>Welcome to Linera Flappy!</h2>
-      
-      <div class="username-form">
-        <label for="username-input">Enter Your Player Name</label>
-        <input type="text" id="username-input" class="username-input" maxlength="20" placeholder="Enter your name..." />
+  <!-- Login/Register Modal -->
+  <div id="auth-screen" class="auth-modal" style="display: none;">
+    <div id="auth-modal" class="auth-modal-inner">
+      <div class="auth-modal-content">
+        <h2 id="auth-title">Welcome to Linera Flappy!</h2>
         
-        <div class="username-validation" id="username-validation" style="display: none;">
-          <div class="validation-message" id="validation-message">Name is required</div>
+        <!-- Login Form -->
+        <div id="login-form" class="auth-form">
+          <div class="form-group">
+            <label for="login-username">Username</label>
+            <input type="text" id="login-username" class="form-input" placeholder="Enter your username..." maxlength="20" />
+          </div>
+          
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <div class="password-field">
+              <input type="password" id="login-password" class="form-input" placeholder="Enter your password..." />
+              <button type="button" id="toggle-login-password" class="password-toggle">👁</button>
+            </div>
+          </div>
+          
+          <div class="auth-validation" id="auth-validation" style="display: none;">
+            <div class="validation-message" id="auth-validation-message">Invalid credentials</div>
+          </div>
+          
+          <div class="auth-actions">
+            <button id="login-btn" class="primary-auth-button">Login</button>
+            <button id="show-register-btn" class="secondary-auth-button">Create Account</button>
+          </div>
         </div>
         
-        <div class="username-info">
-          <div class="info-item">
-            <span class="info-icon">ℹ</span>
-            <span class="info-text">Maximum 20 characters</span>
+        <!-- Register Form -->
+        <div id="register-form" class="auth-form" style="display: none;">
+          <div class="form-group">
+            <label for="register-username">Username</label>
+            <input type="text" id="register-username" class="form-input" placeholder="Choose a username..." maxlength="20" />
           </div>
-          <div class="info-item">
-            <span class="info-icon">🎮</span>
-            <span class="info-text">This name will appear on leaderboards</span>
+          
+          <div class="form-group">
+            <label for="register-password">Password</label>
+            <div class="password-field">
+              <input type="password" id="register-password" class="form-input" placeholder="Choose a password..." />
+              <button type="button" id="toggle-register-password" class="password-toggle">👁</button>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="register-confirm-password">Confirm Password</label>
+            <div class="password-field">
+              <input type="password" id="register-confirm-password" class="form-input" placeholder="Confirm your password..." />
+              <button type="button" id="toggle-register-confirm-password" class="password-toggle">👁</button>
+            </div>
+          </div>
+          
+          <div class="auth-validation" id="register-validation" style="display: none;">
+            <div class="validation-message" id="register-validation-message">Passwords do not match</div>
+          </div>
+          
+          <div class="auth-info">
+            <div class="info-item">
+              <span class="info-icon">ℹ</span>
+              <span class="info-text">Username: 3-20 characters</span>
+            </div>
+            <div class="info-item">
+              <span class="info-icon">🔒</span>
+              <span class="info-text">Password: At least 6 characters</span>
+            </div>
+            <div class="info-item">
+              <span class="info-icon">🎮</span>
+              <span class="info-text">This name will appear on leaderboards</span>
+            </div>
+          </div>
+          
+          <div class="auth-actions">
+            <button id="register-btn" class="primary-auth-button">Create Account</button>
+            <button id="show-login-btn" class="secondary-auth-button">Back to Login</button>
           </div>
         </div>
         
-        <div class="username-actions">
-          <button id="random-name-btn" class="random-name-button">Random Name</button>
-          <button id="confirm-name-btn" class="confirm-name-button">Continue</button>
+        <!-- Demo Account Info -->
+        <div class="demo-info">
+          <div class="demo-accounts">
+            <h4>Demo Accounts</h4>
+            <div class="demo-account">
+              <strong>Admin:</strong> admin / admin123
+            </div>
+            <div class="demo-account">
+              <strong>Demo:</strong> demo / demo123
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -93,7 +158,7 @@
     <div class="tournament-leaderboard-content">
       <div class="tournament-leaderboard-header">
         <h2 id="tournament-leaderboard-title">Tournament Leaderboard</h2>
-        <button id="close-tournament-leaderboard" class="close-modal-btn">✕</button>
+        <button id="close-tournament-leaderboard" class="close-modal-btn" onclick="hideTournamentLeaderboardModal()">✕</button>
       </div>
       
       <div class="tournament-leaderboard-info">
@@ -119,10 +184,10 @@
       
       <div class="tournament-leaderboard-controls">
         <div class="leaderboard-actions">
-          <button id="join-tournament-from-modal" class="join-tournament-btn">
+          <button id="join-tournament-from-modal-btn" class="join-tournament-btn" onclick="joinTournamentFromModal()">
             JOIN TOURNAMENT
           </button>
-          <button id="refresh-tournament-leaderboard" class="refresh-leaderboard-btn">
+          <button id="refresh-tournament-leaderboard" class="refresh-leaderboard-btn" onclick="refreshTournamentLeaderboard()">
             ↻ Refresh
           </button>
         </div>
@@ -152,7 +217,7 @@
         </div>
         
         <div class="modal-actions">
-          <button id="close-tournament-leaderboard-footer" class="modal-action-btn secondary">
+          <button id="close-tournament-leaderboard-footer" class="modal-action-btn secondary" onclick="hideTournamentLeaderboardModal()">
             Close
           </button>
         </div>
@@ -163,7 +228,7 @@
   <div class="game-title" id="main-title" style="display: none;">Linera Flappy</div>
   
   <!-- Mode Selection Screen -->
-  <div id="mode-selection" class="mode-selection" style="display: none;">
+  <div id="mode-selection-screen" class="mode-selection" style="display: none;">
     <h2>Select Game Mode</h2>
     
     <button class="mode-button practice" id="practice-mode-btn">
@@ -203,17 +268,6 @@
           <textarea id="tournament-description" class="form-textarea" maxlength="200" placeholder="An exciting tournament for all skill levels..."></textarea>
         </div>
         
-        <div class="form-group">
-          <label for="tournament-category">Category</label>
-          <select id="tournament-category" class="form-select" required>
-            <option value="">Select Category</option>
-            <option value="beginner">Beginner (0-25 points)</option>
-            <option value="intermediate">Intermediate (26-50 points)</option>
-            <option value="advanced">Advanced (51-100 points)</option>
-            <option value="pro">Pro (100+ points)</option>
-            <option value="open">Open (All levels)</option>
-          </select>
-        </div>
       </div>
       
       <div class="form-section">
@@ -264,10 +318,10 @@
   </div>
 
   <!-- Tournament List Screen -->
-  <div id="tournament-list" class="tournament-list" style="display: none;">
+  <div id="tournament-screen" class="tournament-list" style="display: none;">
     <h2>Available Tournaments</h2>
     
-    <div id="tournament-list-container" class="tournament-list-container">
+    <div id="tournament-list" class="tournament-list-container">
       <!-- Tournaments will be populated here -->
     </div>
     
@@ -281,7 +335,7 @@
     </div>
   </div>
   
-  <div id="main-container" class="main-container" style="display: none;">
+  <div id="game-screen" class="main-container" style="display: none;">
     <div class="game-section">
       <div class="container">
         <canvas id="gameCanvas" width="288" height="512"></canvas>
@@ -318,6 +372,10 @@
           <span class="label">Rank:</span>
           <span id="player-rank" class="value">-</span>
         </div>
+        
+        <div class="player-actions">
+          <button id="logout-btn" class="logout-button">🚪 Logout</button>
+        </div>
       </div>
 
       <!-- Tournament Info Panel (shown only in tournament mode) -->
@@ -339,7 +397,7 @@
 
       <div class="leaderboard-panel">
         <h3 id="leaderboard-title">Top Players</h3>
-        <div id="leaderboard-list" class="leaderboard-list">
+        <div id="leaderboard-entries" class="leaderboard-list">
           <div class="loading">Loading...</div>
         </div>
         <button id="refreshBtn" class="refresh-button">↻ Refresh</button>

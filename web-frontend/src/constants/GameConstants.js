@@ -126,8 +126,8 @@ export const TOURNAMENT_CONFIG = {
 export const BLOCKCHAIN_CONFIG = {
   // Environment variables keys
   ENV_KEYS: {
-    APP_URL: 'VITE_COUNTER_APP_URL',
-    APP_ID: 'VITE_COUNTER_APP_ID'
+    APP_URL: 'VITE_APP_URL',
+    APP_ID: 'VITE_APP_ID'
   },
 
   // Default values for development
