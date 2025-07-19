@@ -42,17 +42,14 @@ export class GameEngine {
     
     this.bgImage.onload = () => {
       this.imagesLoaded++;
-      console.log(`Background image loaded (${this.imagesLoaded}/${this.totalImages})`);
     };
     
     this.baseImage.onload = () => {
       this.imagesLoaded++;
-      console.log(`Base image loaded (${this.imagesLoaded}/${this.totalImages})`);
     };
     
     this.gameOverImage.onload = () => {
       this.imagesLoaded++;
-      console.log(`Game over image loaded (${this.imagesLoaded}/${this.totalImages})`);
     };
     
     // Load audio
@@ -91,16 +88,13 @@ export class GameEngine {
   setDisplayScale(scaleX, scaleY) {
     this.displayScaleX = scaleX;
     this.displayScaleY = scaleY;
-    console.log(`Display scale updated: ${scaleX.toFixed(2)}x${scaleY.toFixed(2)}`);
   }
 
   startGameLoop() {
     if (this.isGameLoopRunning) {
-      console.log("Game loop already running");
       return;
     }
 
-    console.log("Starting game loop");
     this.isGameLoopRunning = true;
 
     if (this.currentScreen === "game-screen" && this.initialLoadingComplete) {
@@ -109,7 +103,6 @@ export class GameEngine {
   }
 
   stopGameLoop() {
-    console.log("Stopping game loop");
     this.isGameLoopRunning = false;
 
     if (this.gameLoopId !== null) {
@@ -130,11 +123,6 @@ export class GameEngine {
       this.currentScreen !== "game-screen" ||
       !this.initialLoadingComplete
     ) {
-      console.log("Game loop stopped:", {
-        isRunning: this.isGameLoopRunning,
-        screen: this.currentScreen,
-        loaded: this.initialLoadingComplete,
-      });
       return;
     }
 
@@ -285,8 +273,6 @@ export class GameEngine {
   }
 
   resetGameState() {
-    console.log("Resetting complete game state");
-
     this.bird = new Bird(this.canvas, this.ctx);
     this.pipes = [];
     this.frame = 0;

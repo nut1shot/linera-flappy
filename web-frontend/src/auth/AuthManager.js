@@ -2,48 +2,35 @@ import { AUTH_CONFIG, DEFAULT_ACCOUNTS } from '../constants/GameConstants.js';
 import { TimeUtils } from '../utils/TimeUtils.js';
 
 export class AuthManager {
-  constructor() {
+  constructor(lineraClient) {
+    this.lineraClient = lineraClient;
     this.currentUser = null;
     this.isAuthenticated = false;
     this.sessionExpiry = null;
     this.maxLoginAttempts = AUTH_CONFIG.LOGIN.MAX_ATTEMPTS;
     this.lockoutDuration = AUTH_CONFIG.LOGIN.LOCKOUT_DURATION;
     
-    // Initialize default accounts
+    // Initialize default accounts on blockchain
     this.initializeDefaultAccounts();
   }
 
   async initializeDefaultAccounts() {
-    const users = this.getStoredUsers();
-    
-    // Create admin account if doesn't exist
-    if (!users[DEFAULT_ACCOUNTS.ADMIN.username]) {
-      await this.createUser(
-        DEFAULT_ACCOUNTS.ADMIN.username, 
-        DEFAULT_ACCOUNTS.ADMIN.password, 
-        DEFAULT_ACCOUNTS.ADMIN.role
-      );
-    }
-    
-    // Create demo account if doesn't exist
-    if (!users[DEFAULT_ACCOUNTS.DEMO.username]) {
-      await this.createUser(
-        DEFAULT_ACCOUNTS.DEMO.username, 
-        DEFAULT_ACCOUNTS.DEMO.password, 
-        DEFAULT_ACCOUNTS.DEMO.role
-      );
-    }
+    // Default accounts are now created during blockchain app instantiation
+    // Admin account is created with the leaderboard chain setup
+    // Demo account will be created on first login attempt
+    console.log('AuthManager: Default accounts will be created on blockchain during first login');
   }
 
   async generateHash(username, password) {
-    const salt = this.generateSalt();
-    const data = username + password + salt;
+    // Deterministic hash for blockchain authentication
+    // Using username as salt to ensure same hash for same credentials
+    const data = username + password + username; // Use username as deterministic salt
     const encoder = new TextEncoder();
     const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(data));
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
-    return { hash: hashHex, salt };
+    return hashHex; // Return consistent hash for blockchain
   }
 
   generateSalt() {
@@ -52,25 +39,15 @@ export class AuthManager {
     return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
   }
 
-  async verifyPassword(username, password, storedHash, salt) {
-    const data = username + password + salt;
-    const encoder = new TextEncoder();
-    const hashBuffer = await crypto.subtle.digest(AUTH_CONFIG.SECURITY.HASH_ALGORITHM, encoder.encode(data));
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    
-    return hashHex === storedHash;
-  }
-
+  // Local storage methods for session management and login attempts
   getStoredUsers() {
-    const users = localStorage.getItem(AUTH_CONFIG.STORAGE.USERS_KEY);
-    return users ? JSON.parse(users) : {};
+    // Users are now stored on blockchain, this is kept for backward compatibility
+    return {};
   }
 
   saveUser(username, userData) {
-    const users = this.getStoredUsers();
-    users[username] = userData;
-    localStorage.setItem(AUTH_CONFIG.STORAGE.USERS_KEY, JSON.stringify(users));
+    // Users are now stored on blockchain, this method is deprecated
+    console.warn('saveUser is deprecated - users are stored on blockchain');
   }
 
   getLoginAttempts(username) {
@@ -109,37 +86,10 @@ export class AuthManager {
   }
 
   async createUser(username, password, role = 'player') {
-    if (!username || !password) {
-      throw new Error('Username and password are required');
-    }
-
-    if (username.length < AUTH_CONFIG.LOGIN.MIN_USERNAME_LENGTH) {
-      throw new Error(`Username must be at least ${AUTH_CONFIG.LOGIN.MIN_USERNAME_LENGTH} characters long`);
-    }
-
-    if (password.length < AUTH_CONFIG.LOGIN.MIN_PASSWORD_LENGTH) {
-      throw new Error(`Password must be at least ${AUTH_CONFIG.LOGIN.MIN_PASSWORD_LENGTH} characters long`);
-    }
-
-    const users = this.getStoredUsers();
-    
-    if (users[username]) {
-      throw new Error('Username already exists');
-    }
-
-    const { hash, salt } = await this.generateHash(username, password);
-    
-    const userData = {
-      username,
-      passwordHash: hash,
-      salt,
-      role,
-      createdAt: new Date().toISOString(),
-      lastLogin: null
-    };
-
-    this.saveUser(username, userData);
-    return userData;
+    // User creation is now handled by blockchain loginOrRegister operation
+    // This method is kept for backward compatibility but not used
+    console.warn('createUser is deprecated - use loginOrRegister instead');
+    return null;
   }
 
   async login(username, password) {
@@ -147,47 +97,58 @@ export class AuthManager {
       throw new Error('Username and password are required');
     }
 
-    // Check if account is locked
+    // Check if account is locked locally
     if (this.isAccountLocked(username)) {
       const remaining = this.getAccountLockTimeRemaining(username);
       throw new Error(`Account locked. Try again in ${remaining} minutes.`);
     }
 
-    const users = this.getStoredUsers();
-    const user = users[username];
-    
-    if (!user) {
-      this.updateLoginAttempts(username, false);
-      throw new Error('Invalid username or password');
-    }
+    try {
+      // Generate hash for blockchain authentication
+      const hash = await this.generateHash(username, password);
+      
+      // Call blockchain loginOrRegister operation
+      await this.lineraClient.loginOrRegister(username, hash);
+      
+      // Get the result from blockchain
+      const loginResult = await this.lineraClient.getLoginResult();
+      
+      if (!loginResult || !loginResult.success) {
+        this.updateLoginAttempts(username, false);
+        throw new Error(loginResult?.message || 'Authentication failed');
+      }
 
-    const isValid = await this.verifyPassword(username, password, user.passwordHash, user.salt);
-    
-    if (!isValid) {
+      // Successful login
+      this.updateLoginAttempts(username, true);
+      
+      // Set session with blockchain user data
+      this.currentUser = {
+        username: loginResult.user.username,
+        role: loginResult.user.role,
+        createdAt: loginResult.user.createdAt,
+        chainId: loginResult.user.chainId,
+        lastLogin: new Date().toISOString(),
+        credentialsHash: hash // Store hash for re-authentication
+      };
+      
+      
+      this.isAuthenticated = true;
+      this.sessionExpiry = Date.now() + AUTH_CONFIG.SESSION.DURATION_MS;
+      
+      // Store session locally
+      this.saveSession();
+      
+      return {
+        username: this.currentUser.username,
+        role: this.currentUser.role,
+        lastLogin: this.currentUser.lastLogin,
+        isNewUser: loginResult.is_new_user
+      };
+      
+    } catch (error) {
       this.updateLoginAttempts(username, false);
-      throw new Error('Invalid username or password');
+      throw error;
     }
-
-    // Successful login
-    this.updateLoginAttempts(username, true);
-    
-    // Update last login
-    user.lastLogin = new Date().toISOString();
-    this.saveUser(username, user);
-    
-    // Set session
-    this.currentUser = user;
-    this.isAuthenticated = true;
-    this.sessionExpiry = Date.now() + AUTH_CONFIG.SESSION.DURATION_MS;
-    
-    // Store session
-    this.saveSession();
-    
-    return {
-      username: user.username,
-      role: user.role,
-      lastLogin: user.lastLogin
-    };
   }
 
   logout() {
@@ -197,19 +158,27 @@ export class AuthManager {
     
     // Clear session storage
     localStorage.removeItem(AUTH_CONFIG.STORAGE.SESSION_KEY);
+    
+    // Clear wallet data when user logs out
+    if (this.lineraClient && this.lineraClient.clearWalletData) {
+      this.lineraClient.clearWalletData();
+    }
   }
 
   saveSession() {
     const session = {
       username: this.currentUser.username,
       role: this.currentUser.role,
-      expiry: this.sessionExpiry
+      lastLogin: this.currentUser.lastLogin,
+      expiry: this.sessionExpiry,
+      // Store credentials hash for automatic re-authentication
+      credentialsHash: this.currentUser.credentialsHash
     };
     
     localStorage.setItem(AUTH_CONFIG.STORAGE.SESSION_KEY, JSON.stringify(session));
   }
 
-  loadSession() {
+  async loadSession() {
     const session = localStorage.getItem(AUTH_CONFIG.STORAGE.SESSION_KEY);
     
     if (!session) {
@@ -224,24 +193,52 @@ export class AuthManager {
       return false;
     }
 
-    // Load user data
-    const users = this.getStoredUsers();
-    const user = users[sessionData.username];
-    
-    if (!user) {
+    try {
+      // Re-authenticate automatically using stored credentials hash
+      // This is necessary because the chain ID changes on refresh
+      if (sessionData.credentialsHash) {
+        console.log('Re-authenticating user with stored credentials for session persistence');
+        
+        // Call blockchain loginOrRegister operation with stored hash
+        await this.lineraClient.loginOrRegister(sessionData.username, sessionData.credentialsHash);
+        
+        // Get the result from blockchain
+        const loginResult = await this.lineraClient.getLoginResult();
+        
+        if (!loginResult || !loginResult.success) {
+          localStorage.removeItem(AUTH_CONFIG.STORAGE.SESSION_KEY);
+          return false;
+        }
+
+        // Restore session with blockchain data
+        this.currentUser = {
+          username: loginResult.user.username,
+          role: loginResult.user.role,
+          createdAt: loginResult.user.createdAt,
+          chainId: loginResult.user.chainId,
+          lastLogin: sessionData.lastLogin,
+          credentialsHash: sessionData.credentialsHash
+        };
+        
+        this.isAuthenticated = true;
+        this.sessionExpiry = sessionData.expiry;
+        
+        return {
+          username: this.currentUser.username,
+          role: this.currentUser.role,
+          lastLogin: this.currentUser.lastLogin
+        };
+      } else {
+        // No credentials hash stored, can't re-authenticate
+        localStorage.removeItem(AUTH_CONFIG.STORAGE.SESSION_KEY);
+        return false;
+      }
+      
+    } catch (error) {
+      console.error('Failed to re-authenticate session with blockchain:', error);
       localStorage.removeItem(AUTH_CONFIG.STORAGE.SESSION_KEY);
       return false;
     }
-
-    this.currentUser = user;
-    this.isAuthenticated = true;
-    this.sessionExpiry = sessionData.expiry;
-    
-    return {
-      username: user.username,
-      role: user.role,
-      lastLogin: user.lastLogin
-    };
   }
 
   isSessionValid() {
@@ -257,7 +254,7 @@ export class AuthManager {
   }
 
   isAdmin() {
-    return this.isAuthenticated && this.currentUser && this.currentUser.role === 'admin';
+    return this.isAuthenticated && this.currentUser && this.currentUser.role === 'ADMIN';
   }
 
   async changePassword(username, currentPassword, newPassword) {
@@ -269,31 +266,24 @@ export class AuthManager {
       throw new Error(`New password must be at least ${AUTH_CONFIG.LOGIN.MIN_PASSWORD_LENGTH} characters long`);
     }
 
-    const users = this.getStoredUsers();
-    const user = users[username];
-    
-    if (!user) {
-      throw new Error('User not found');
-    }
+    try {
+      // Verify current password by attempting login
+      const currentHash = await this.generateHash(username, currentPassword);
+      await this.lineraClient.loginOrRegister(username, currentHash);
+      
+      const currentLoginResult = await this.lineraClient.getLoginResult();
+      if (!currentLoginResult || !currentLoginResult.success) {
+        throw new Error('Current password is incorrect');
+      }
 
-    // Verify current password
-    const isCurrentValid = await this.verifyPassword(username, currentPassword, user.passwordHash, user.salt);
-    
-    if (!isCurrentValid) {
-      throw new Error('Current password is incorrect');
+      // Change password by registering with new hash
+      const newHash = await this.generateHash(username, newPassword);
+      await this.lineraClient.loginOrRegister(username, newHash);
+      
+      return true;
+    } catch (error) {
+      throw new Error('Failed to change password: ' + error.message);
     }
-
-    // Generate new hash
-    const { hash, salt } = await this.generateHash(username, newPassword);
-    
-    // Update user data
-    user.passwordHash = hash;
-    user.salt = salt;
-    user.lastPasswordChange = new Date().toISOString();
-    
-    this.saveUser(username, user);
-    
-    return true;
   }
 
   deleteUser(username) {
@@ -305,19 +295,9 @@ export class AuthManager {
       throw new Error('Cannot delete admin account');
     }
 
-    const users = this.getStoredUsers();
-    
-    if (!users[username]) {
-      throw new Error('User not found');
-    }
-
-    delete users[username];
-    localStorage.setItem(AUTH_CONFIG.STORAGE.USERS_KEY, JSON.stringify(users));
-    
-    // Clear login attempts
-    localStorage.removeItem(`login_attempts_${username}`);
-    
-    return true;
+    // User deletion is not implemented in the blockchain contract
+    // This would require a new operation to be added to the smart contract
+    throw new Error('User deletion not supported in blockchain version');
   }
 
   listUsers() {
@@ -325,19 +305,16 @@ export class AuthManager {
       throw new Error('Only admins can list users');
     }
 
-    const users = this.getStoredUsers();
-    return Object.keys(users).map(username => ({
-      username,
-      role: users[username].role,
-      createdAt: users[username].createdAt,
-      lastLogin: users[username].lastLogin
-    }));
+    // User listing is not implemented in the blockchain contract
+    // This would require a new query to be added to the smart contract
+    throw new Error('User listing not supported in blockchain version');
   }
 
   // Utility method to check if username is available
-  isUsernameAvailable(username) {
-    const users = this.getStoredUsers();
-    return !users[username];
+  async isUsernameAvailable(username) {
+    // Username availability is checked during login/register on blockchain
+    // This method is kept for UI validation but always returns true
+    return true; // Blockchain will handle duplicate checking
   }
 
   // Get remaining login attempts

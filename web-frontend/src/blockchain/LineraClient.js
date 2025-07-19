@@ -1,15 +1,34 @@
 import * as linera from "@linera/client";
 
 export class LineraClient {
+  static instance = null;
+
   constructor() {
+    // Singleton pattern
+    if (LineraClient.instance) {
+      return LineraClient.instance;
+    }
+    LineraClient.instance = this;
+
+    // Storage keys for persistence
+    this.STORAGE_KEYS = {
+      CHAIN_ID: "linera_chain_id",
+      WALLET_DATA: "linera_wallet_data",
+      WALLET_SERIALIZED: "linera_wallet_serialized",
+    };
+
     this.APP_ID = import.meta.env.VITE_APP_ID;
     this.APP_URL = import.meta.env.VITE_APP_URL;
     this.LEADERBOARD_CHAIN_ID = import.meta.env.VITE_LEADERBOARD_CHAIN_ID;
+    this.LEADERBOARD_CHAIN_BASE_URL =
+      import.meta.env.VITE_LEADERBOARD_CHAIN_URL;
     this.counter = null;
     this.wallet = null;
     this.client = null;
     this.faucet = null;
     this.chainId = "";
+    this.leaderboardClient = null;
+    this.isInitialized = false;
 
     // Validate required environment variables
     if (!this.APP_ID) {
@@ -23,6 +42,14 @@ export class LineraClient {
         "VITE_LEADERBOARD_CHAIN_ID is not configured in .env file"
       );
     }
+    if (!this.LEADERBOARD_CHAIN_BASE_URL) {
+      throw new Error(
+        "VITE_LEADERBOARD_CHAIN_URL is not configured in .env file"
+      );
+    }
+
+    // Construct full leaderboard chain URL
+    this.LEADERBOARD_CHAIN_FULL_URL = `${this.LEADERBOARD_CHAIN_BASE_URL}/chains/${this.LEADERBOARD_CHAIN_ID}/applications/${this.APP_ID}`;
   }
 
   async initialize() {
@@ -31,36 +58,76 @@ export class LineraClient {
       console.log("App URL:", this.APP_URL);
       console.log("App ID:", this.APP_ID);
 
+      // Always reinitialize on refresh to avoid stale state
+      this.isInitialized = false;
+      this.client = null;
+      this.wallet = null;
+      this.counter = null;
+      this.faucet = null;
+
       // Initialize the Linera library
       await linera.default();
       console.log("Linera library initialized");
+
+      // For development with faucet, we can't persist wallets across sessions
+      // But we can avoid the expensive chain claiming process if the current session
+      // already has a working setup
+
+      // Check if we already have a working setup in the current session
+      if (
+        this.isInitialized &&
+        this.client &&
+        this.wallet &&
+        this.counter &&
+        this.chainId
+      ) {
+        console.log("Already initialized, reusing existing setup");
+        return {
+          chainId: this.chainId,
+          counter: this.counter,
+        };
+      }
+
+      console.log("Creating new wallet and claiming new chain");
 
       // Create faucet
       this.faucet = new linera.Faucet(this.APP_URL);
       console.log("Faucet created");
 
-      // Create wallet
+      // Create wallet - this will always be fresh in development mode
       this.wallet = await this.faucet.createWallet();
-      console.log("Wallet created");
+      console.log("Wallet created", this.wallet, typeof this.wallet);
 
-      // Create client with the wallet (await needed for proper initialization)
+      // Create client with the wallet
       this.client = await new linera.Client(this.wallet);
-      console.log("Client created");
+      console.log("Client created", this.client, typeof this.client);
 
-      // Claim chain using the client
+      // Validate client instance
+      if (!this.client || typeof this.client !== "object") {
+        throw new Error("Failed to create valid Client instance");
+      }
+
+      // Claim chain from faucet - this will create a new chain
       this.chainId = await this.faucet.claimChain(this.client);
       console.log("Chain claimed:", this.chainId);
 
       // Get the application frontend
-      this.counter = await this.client
-        .frontend()
-        .application(this.APP_ID);
+      this.counter = await this.client.frontend().application(this.APP_ID);
       console.log("Application frontend obtained");
+
+      // Save chainId for display purposes only
+      this.saveChainId();
+
+      // Mark as initialized
+      this.isInitialized = true;
 
       // Store globally for backwards compatibility
       window.gameWallet = this.wallet;
       window.gameClient = this.client;
       window.gameFaucet = this.faucet;
+
+      // Make clear storage available for debugging
+      window.clearLineraStorage = () => this.clearAllLineraStorage();
 
       return {
         chainId: this.chainId,
@@ -75,6 +142,64 @@ export class LineraClient {
       });
       throw error;
     }
+  }
+
+  // ==========================================
+  // STORAGE PERSISTENCE METHODS
+  // ==========================================
+
+  saveChainId() {
+    try {
+      // Save chainId for display purposes
+      localStorage.setItem(this.STORAGE_KEYS.CHAIN_ID, this.chainId);
+      console.log("ChainId saved to localStorage:", this.chainId);
+
+      // Save wallet data for manual persistence since Linera's built-in persistence
+      // doesn't work in development faucet mode
+      if (this.wallet) {
+        try {
+          // Store a flag indicating we have wallet data
+          localStorage.setItem(this.STORAGE_KEYS.WALLET_DATA, "true");
+          console.log("Wallet persistence flag saved");
+        } catch (walletError) {
+          console.warn("Failed to save wallet persistence flag:", walletError);
+        }
+      }
+    } catch (error) {
+      console.warn("Failed to save chainId:", error);
+    }
+  }
+
+  clearWalletData() {
+    // Clear localStorage
+    localStorage.removeItem(this.STORAGE_KEYS.CHAIN_ID);
+    localStorage.removeItem(this.STORAGE_KEYS.WALLET_DATA);
+
+    // Reset instance state
+    this.isInitialized = false;
+    this.chainId = "";
+    this.wallet = null;
+    this.client = null;
+    this.counter = null;
+    this.faucet = null;
+
+    console.log("Wallet data cleared from memory and localStorage");
+  }
+
+  // Clear all Linera-related storage (use with caution)
+  clearAllLineraStorage() {
+    this.clearWalletData();
+
+    // Clear IndexedDB that Linera uses
+    try {
+      const deleteDB = indexedDB.deleteDatabase("linera-storage");
+      deleteDB.onsuccess = () => console.log("Linera IndexedDB cleared");
+      deleteDB.onerror = () => console.log("Failed to clear Linera IndexedDB");
+    } catch (error) {
+      console.log("Could not clear Linera IndexedDB:", error);
+    }
+
+    console.log("All Linera storage cleared - next refresh will start fresh");
   }
 
   async setupGame(playerName) {
@@ -180,102 +305,720 @@ export class LineraClient {
   }
 
   getChainId() {
-    return this.chainId;
+    return (
+      this.chainId || localStorage.getItem(this.STORAGE_KEYS.CHAIN_ID) || ""
+    );
   }
 
   getLeaderboardChainId() {
     return this.LEADERBOARD_CHAIN_ID;
   }
 
+  getLeaderboardChainUrl() {
+    return this.LEADERBOARD_CHAIN_FULL_URL;
+  }
+
+  getLeaderboardChainBaseUrl() {
+    return this.LEADERBOARD_CHAIN_BASE_URL;
+  }
+
+  // Helper method to query leaderboard chain directly
+  async queryLeaderboardChain(query) {
+    try {
+      console.log(
+        "Querying leaderboard chain:",
+        this.LEADERBOARD_CHAIN_FULL_URL
+      );
+
+      const response = await fetch(this.LEADERBOARD_CHAIN_FULL_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.errors) {
+        throw new Error(`GraphQL errors: ${JSON.stringify(data.errors)}`);
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error("Failed to query leaderboard chain:", error);
+      throw error;
+    }
+  }
+
   // ==========================================
-  // TOURNAMENT BLOCKCHAIN METHODS - TODO
+  // AUTHENTICATION METHODS
+  // ==========================================
+
+  /**
+   * Login or register user on leaderboard chain
+   * @param {string} username - Username
+   * @param {string} hash - Password hash
+   * @returns {Promise} Login/register result
+   */
+  async loginOrRegister(username, hash) {
+    const query = `
+      mutation {
+        loginOrRegister(
+          username: "${username}",
+          hash: "${hash}",
+          requesterChainId: "${this.chainId}"
+        )
+      }
+    `;
+
+    try {
+      await this.queryLeaderboardChain(query);
+      console.log("Login/register operation completed");
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to login/register:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get login result for current chain
+   * @returns {Promise} Login result
+   */
+  async getLoginResult() {
+    const query = `
+      query {
+        loginResultFor(chainId: "${this.chainId}") {
+          success
+          user {
+            username
+            role
+            createdAt
+            chainId
+          }
+          message
+          isNewUser
+        }
+      }
+    `;
+
+    try {
+      const data = await this.queryLeaderboardChain(query);
+      return data.loginResultFor;
+    } catch (error) {
+      console.error("Failed to get login result:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get current user info
+   * @returns {Promise} User info
+   */
+  async getCurrentUser() {
+    const query = `
+      query {
+        isLoggedIn
+        username
+        userRole
+      }
+    `;
+
+    try {
+      const data = await this.queryLeaderboardChain(query);
+      if (data.isLoggedIn) {
+        return {
+          username: data.username,
+          role: data.userRole,
+          isLoggedIn: true,
+        };
+      }
+      return { isLoggedIn: false };
+    } catch (error) {
+      console.error("Failed to get current user:", error);
+      throw error;
+    }
+  }
+
+  // ==========================================
+  // PRACTICE MODE METHODS
+  // ==========================================
+
+  /**
+   * Submit practice score
+   * @param {string} username - Username
+   * @param {number} score - Score to submit
+   * @returns {Promise} Submission result
+   */
+  async submitPracticeScore(username, score) {
+    if (!this.counter) {
+      throw new Error("Client not initialized");
+    }
+
+    const queryObject = {
+      query: `
+        mutation {
+          submitPracticeScore(
+            username: "${username}",
+            score: ${score}
+          )
+        }
+      `,
+    };
+
+    try {
+      const response = await this.counter.query(JSON.stringify(queryObject));
+      console.log("Practice score submitted successfully");
+      return response;
+    } catch (error) {
+      console.error("Failed to submit practice score:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get practice leaderboard
+   * @returns {Promise} Practice leaderboard
+   */
+  async getPracticeLeaderboard() {
+    const query = `
+      query {
+        practiceLeaderboard {
+          username
+          score
+          chainId
+          timestamp
+        }
+      }
+    `;
+
+    try {
+      const data = await this.queryLeaderboardChain(query);
+      return data.practiceLeaderboard;
+    } catch (error) {
+      console.error("Failed to get practice leaderboard:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get my practice scores and best
+   * @returns {Promise} My practice data
+   */
+  async getMyPracticeData() {
+    const query = `
+      query {
+        myPracticeScores
+        myPracticeBest
+      }
+    `;
+
+    try {
+      const data = await this.queryLeaderboardChain(query);
+      return {
+        myPracticeScores: data.myPracticeScores,
+        myPracticeBest: data.myPracticeBest,
+      };
+    } catch (error) {
+      console.error("Failed to get my practice data:", error);
+      throw error;
+    }
+  }
+
+  // ==========================================
+  // TOURNAMENT BLOCKCHAIN METHODS
   // ==========================================
   // These methods are prepared for future blockchain implementation.
   // Currently using localStorage in GameState.js for development.
 
   /**
-   * TODO: Create tournament on blockchain
+   * Create tournament on blockchain
    * @param {Object} tournamentData - Tournament data
    * @returns {Promise} Tournament creation result
    */
-  async createTournament(_tournamentData) {
-    console.warn(
-      "Tournament blockchain methods not implemented yet. Using localStorage."
-    );
-    throw new Error("TODO: Implement blockchain tournament creation");
+  async createTournament(tournamentData) {
+    if (!this.counter) {
+      throw new Error("Client not initialized");
+    }
+
+    const queryObject = {
+      query: `
+        mutation {
+          createTournament(
+            callerChainId: "${this.chainId}",
+            name: "${tournamentData.name}",
+            description: "${tournamentData.description}",
+            startTime: ${
+              tournamentData.startTime
+                ? Math.floor(tournamentData.startTime.getTime() / 1000)
+                : null
+            },
+            endTime: ${
+              tournamentData.endTime
+                ? Math.floor(tournamentData.endTime.getTime() / 1000)
+                : null
+            }
+          )
+        }
+      `,
+    };
+
+    try {
+      const response = await this.queryLeaderboardChain(queryObject.query);
+      console.log("Tournament created successfully");
+      return response;
+    } catch (error) {
+      console.error("Failed to create tournament:", error);
+      throw error;
+    }
   }
 
   /**
-   * TODO: Fetch tournaments from blockchain
+   * Fetch tournaments from blockchain
    * @returns {Promise} Array of tournaments
    */
   async getTournaments() {
-    console.warn(
-      "Tournament blockchain methods not implemented yet. Using localStorage."
-    );
-    throw new Error("TODO: Implement blockchain tournament fetching");
+    const query = `
+      query {
+        tournaments {
+          id
+          name
+          description
+          status
+          startTime
+          endTime
+          createdAt
+          isPinned
+          pinnedBy
+          pinnedAt
+        }
+      }
+    `;
+
+    try {
+      const data = await this.queryLeaderboardChain(query);
+      const tournaments = data.tournaments || [];
+
+      // Fetch participant count and max score for each tournament
+      const tournamentsWithCounts = await Promise.all(
+        tournaments.map(async (tournament) => {
+          let playerCount = 0;
+          let maxScore = 0;
+          
+          try {
+            const countQuery = `
+              query {
+                tournamentParticipantCount(tournamentId: "${tournament.id}")
+              }
+            `;
+            const countData = await this.queryLeaderboardChain(countQuery);
+            playerCount = countData.tournamentParticipantCount || 0;
+          } catch (error) {
+            console.warn(`Failed to get participant count for tournament ${tournament.id}:`, error);
+          }
+
+          // Fetch tournament leaderboard to get max score
+          try {
+            const leaderboardQuery = `
+              query {
+                tournamentLeaderboard(tournamentId: "${tournament.id}") {
+                  score
+                }
+              }
+            `;
+            const leaderboardData = await this.queryLeaderboardChain(leaderboardQuery);
+            const leaderboard = leaderboardData.tournamentLeaderboard || [];
+            
+            // Find the maximum score from the leaderboard
+            if (leaderboard.length > 0) {
+              maxScore = Math.max(...leaderboard.map(entry => entry.score));
+            }
+          } catch (error) {
+            console.warn(`Failed to get max score for tournament ${tournament.id}:`, error);
+          }
+
+          return {
+            ...tournament,
+            pinned: tournament.isPinned, // Map isPinned to pinned
+            playerCount: playerCount, // Fetch actual participant count
+            maxScore: maxScore, // Fetch actual max score from leaderboard
+          };
+        })
+      );
+
+      return tournamentsWithCounts;
+    } catch (error) {
+      console.error("Failed to get tournaments:", error);
+      throw error;
+    }
   }
 
   /**
-   * TODO: Join tournament on blockchain
-   * @param {number} tournamentId - Tournament ID
+   * Join tournament on blockchain
+   * @param {string} tournamentId - Tournament ID
+   * @param {string} username - Username
    * @returns {Promise} Join result
    */
-  async joinTournament(_tournamentId) {
-    console.warn(
-      "Tournament blockchain methods not implemented yet. Using localStorage."
-    );
-    throw new Error("TODO: Implement blockchain tournament joining");
+  async joinTournament(tournamentId, username) {
+    const query = `
+      mutation {
+        joinTournament(
+          tournamentId: "${tournamentId}",
+          username: "${username}"
+        )
+      }
+    `;
+
+    try {
+      const data = await this.queryLeaderboardChain(query);
+      console.log("Tournament joined successfully");
+      return data;
+    } catch (error) {
+      console.error("Failed to join tournament:", error);
+      throw error;
+    }
   }
 
   /**
-   * TODO: Submit tournament score to blockchain
-   * @param {number} tournamentId - Tournament ID
+   * Submit tournament score to blockchain
+   * @param {string} tournamentId - Tournament ID
+   * @param {string} username - Username
    * @param {number} score - Player score
    * @returns {Promise} Score submission result
    */
-  async submitTournamentScore(_tournamentId, _score) {
-    console.warn(
-      "Tournament blockchain methods not implemented yet. Using localStorage."
-    );
-    throw new Error("TODO: Implement blockchain tournament score submission");
+  async submitTournamentScore(tournamentId, username, score) {
+    if (!this.counter) {
+      throw new Error("Client not initialized");
+    }
+
+    const queryObject = {
+      query: `
+        mutation {
+          submitTournamentScore(
+            tournamentId: "${tournamentId}",
+            username: "${username}",
+            score: ${score}
+          )
+        }
+      `,
+    };
+
+    try {
+      const response = await this.counter.query(JSON.stringify(queryObject));
+      console.log("Tournament score submitted successfully");
+      return response;
+    } catch (error) {
+      console.error("Failed to submit tournament score:", error);
+      throw error;
+    }
   }
 
   /**
-   * TODO: Delete tournament from blockchain
-   * @param {number} tournamentId - Tournament ID
+   * Delete tournament from blockchain
+   * @param {string} tournamentId - Tournament ID
    * @returns {Promise} Deletion result
    */
-  async deleteTournament(_tournamentId) {
-    console.warn(
-      "Tournament blockchain methods not implemented yet. Using localStorage."
-    );
-    throw new Error("TODO: Implement blockchain tournament deletion");
+  async deleteTournament(tournamentId) {
+    if (!this.counter) {
+      throw new Error("Client not initialized");
+    }
+
+    const queryObject = {
+      query: `
+        mutation {
+          deleteTournament(
+            callerChainId: "${this.chainId}",
+            tournamentId: "${tournamentId}"
+          )
+        }
+      `,
+    };
+
+    try {
+      const response = await this.queryLeaderboardChain(queryObject.query);
+      console.log("Tournament deleted successfully");
+      return response;
+    } catch (error) {
+      console.error("Failed to delete tournament:", error);
+      throw error;
+    }
   }
 
   /**
-   * TODO: Get tournament leaderboard from blockchain
-   * @param {number} tournamentId - Tournament ID
+   * Get tournament leaderboard from blockchain
+   * @param {string} tournamentId - Tournament ID
    * @returns {Promise} Tournament leaderboard
    */
-  async getTournamentLeaderboard(_tournamentId) {
-    console.warn(
-      "Tournament blockchain methods not implemented yet. Using localStorage."
-    );
-    throw new Error(
-      "TODO: Implement blockchain tournament leaderboard fetching"
-    );
+  async getTournamentLeaderboard(tournamentId) {
+    const query = `
+      query {
+        tournamentLeaderboard(tournamentId: "${tournamentId}") {
+          username
+          score
+          rank
+          chainId
+          timestamp
+        }
+      }
+    `;
+
+    try {
+      const data = await this.queryLeaderboardChain(query);
+      return data.tournamentLeaderboard || [];
+    } catch (error) {
+      console.error("Failed to get tournament leaderboard:", error);
+      throw error;
+    }
   }
 
   /**
-   * TODO: Toggle tournament pin status on blockchain
-   * @param {number} tournamentId - Tournament ID
+   * Alias for getTournamentLeaderboard for compatibility
+   * @param {string} tournamentId - Tournament ID
+   * @returns {Promise} Tournament leaderboard
+   */
+  async fetchTournamentLeaderboard(tournamentId) {
+    return this.getTournamentLeaderboard(tournamentId);
+  }
+
+  /**
+   * Check if user is tournament participant
+   * @param {string} tournamentId - Tournament ID
+   * @param {string} username - Username
+   * @returns {Promise} Boolean indicating participation
+   */
+  async isTournamentParticipant(tournamentId, username) {
+    const query = `
+      query {
+        isTournamentParticipant(tournamentId: "${tournamentId}", username: "${username}")
+      }
+    `;
+
+    try {
+      const data = await this.queryLeaderboardChain(query);
+      return data.isTournamentParticipant || false;
+    } catch (error) {
+      console.error("Failed to check tournament participation:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Get tournaments the current user has joined
+   * @returns {Promise} Array of tournaments user has joined
+   */
+  async getMyTournaments() {
+    const query = `
+      query {
+        myTournaments {
+          id
+          name
+          description
+          status
+          startTime
+          endTime
+          createdAt
+          isPinned
+          pinnedBy
+          pinnedAt
+        }
+      }
+    `;
+
+    try {
+      const data = await this.queryLeaderboardChain(query);
+      const tournaments = data.myTournaments || [];
+
+      // Fetch participant count and max score for each tournament
+      const tournamentsWithCounts = await Promise.all(
+        tournaments.map(async (tournament) => {
+          let playerCount = 0;
+          let maxScore = 0;
+          
+          try {
+            const countQuery = `
+              query {
+                tournamentParticipantCount(tournamentId: "${tournament.id}")
+              }
+            `;
+            const countData = await this.queryLeaderboardChain(countQuery);
+            playerCount = countData.tournamentParticipantCount || 0;
+          } catch (error) {
+            console.warn(`Failed to get participant count for tournament ${tournament.id}:`, error);
+          }
+
+          // Fetch tournament leaderboard to get max score
+          try {
+            const leaderboardQuery = `
+              query {
+                tournamentLeaderboard(tournamentId: "${tournament.id}") {
+                  score
+                }
+              }
+            `;
+            const leaderboardData = await this.queryLeaderboardChain(leaderboardQuery);
+            const leaderboard = leaderboardData.tournamentLeaderboard || [];
+            
+            // Find the maximum score from the leaderboard
+            if (leaderboard.length > 0) {
+              maxScore = Math.max(...leaderboard.map(entry => entry.score));
+            }
+          } catch (error) {
+            console.warn(`Failed to get max score for tournament ${tournament.id}:`, error);
+          }
+
+          return {
+            ...tournament,
+            pinned: tournament.isPinned, // Map isPinned to pinned
+            playerCount: playerCount, // Fetch actual participant count
+            maxScore: maxScore, // Fetch actual max score from leaderboard
+          };
+        })
+      );
+
+      return tournamentsWithCounts;
+    } catch (error) {
+      console.error("Failed to get my tournaments:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Toggle tournament pin status on blockchain
+   * @param {string} tournamentId - Tournament ID
+   * @param {boolean} pin - Pin status (true to pin, false to unpin)
    * @returns {Promise} Toggle result
    */
-  async toggleTournamentPin(_tournamentId) {
-    console.warn(
-      "Tournament blockchain methods not implemented yet. Using localStorage."
-    );
-    throw new Error("TODO: Implement blockchain tournament pin toggle");
+  async toggleTournamentPin(tournamentId, pin) {
+    if (!this.counter) {
+      throw new Error("Client not initialized");
+    }
+
+    const queryObject = {
+      query: `
+        mutation {
+          pinTournament(
+            callerChainId: "${this.chainId}",
+            tournamentId: "${tournamentId}",
+            pin: ${pin}
+          )
+        }
+      `,
+    };
+
+    try {
+      const response = await this.queryLeaderboardChain(queryObject.query);
+      console.log(`Tournament ${pin ? "pinned" : "unpinned"} successfully`);
+      return response;
+    } catch (error) {
+      console.error("Failed to toggle tournament pin:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Start tournament on blockchain
+   * @param {string} tournamentId - Tournament ID
+   * @returns {Promise} Start result
+   */
+  async startTournament(tournamentId) {
+    if (!this.counter) {
+      throw new Error("Client not initialized");
+    }
+
+    const queryObject = {
+      query: `
+        mutation {
+          startTournament(
+            callerChainId: "${this.chainId}",
+            tournamentId: "${tournamentId}"
+          )
+        }
+      `,
+    };
+
+    try {
+      const response = await this.queryLeaderboardChain(queryObject.query);
+      console.log("Tournament started successfully");
+      return response;
+    } catch (error) {
+      console.error("Failed to start tournament:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * End tournament on blockchain
+   * @param {string} tournamentId - Tournament ID
+   * @param {Array} results - Tournament results
+   * @returns {Promise} End result
+   */
+  async endTournament(tournamentId, results) {
+    if (!this.counter) {
+      throw new Error("Client not initialized");
+    }
+
+    const queryObject = {
+      query: `
+        mutation {
+          endTournament(
+            callerChainId: "${this.chainId}",
+            tournamentId: "${tournamentId}",
+            results: ${JSON.stringify(results)}
+          )
+        }
+      `,
+    };
+
+    try {
+      const response = await this.queryLeaderboardChain(queryObject.query);
+      console.log("Tournament ended successfully");
+      return response;
+    } catch (error) {
+      console.error("Failed to end tournament:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update tournament on blockchain
+   * @param {string} tournamentId - Tournament ID
+   * @param {Object} updates - Tournament updates
+   * @returns {Promise} Update result
+   */
+  async updateTournament(tournamentId, updates) {
+    if (!this.counter) {
+      throw new Error("Client not initialized");
+    }
+
+    const queryObject = {
+      query: `
+        mutation {
+          updateTournament(
+            callerChainId: "${this.chainId}",
+            tournamentId: "${tournamentId}",
+            name: ${updates.name ? `"${updates.name}"` : null},
+            description: ${
+              updates.description ? `"${updates.description}"` : null
+            },
+            startTime: ${updates.startTime || null},
+            endTime: ${updates.endTime || null}
+          )
+        }
+      `,
+    };
+
+    try {
+      const response = await this.queryLeaderboardChain(queryObject.query);
+      console.log("Tournament updated successfully");
+      return response;
+    } catch (error) {
+      console.error("Failed to update tournament:", error);
+      throw error;
+    }
   }
 }

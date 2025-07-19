@@ -16,47 +16,10 @@
   <meta name="format-detection" content="telephone=no">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./src/styles.css" />
+  <link rel="stylesheet" href="./src/components/LoadingSpinner.css" />
 </head>
 <body>
-  <!-- Initial Loading Screen -->
-  <div id="initial-loading-screen" class="initial-loading" style="display: flex;">
-    <div class="game-title">Linera Flappy</div>
-    
-    <div class="loading-container">
-      <div class="linera-logo-loading">
-        <img src="/assets/linera-logo.png" alt="Linera" width="80" height="80" />
-      </div>
-      
-      <div class="loading-text" id="loading-text">Loading game...</div>
-      
-      <div class="loading-bar-container">
-        <div class="loading-bar">
-          <div class="loading-progress" id="loading-progress"></div>
-        </div>
-        <div class="loading-percentage" id="loading-percentage">0%</div>
-      </div>
-      
-      <div class="loading-steps" id="loading-steps">
-        <div class="step pending" id="step-0">
-          <span class="step-icon">○</span>
-          <span class="step-text">Loading assets</span>
-        </div>
-        <div class="step pending" id="step-1">
-          <span class="step-icon">○</span>
-          <span class="step-text">Connecting to blockchain</span>
-        </div>
-        <div class="step pending" id="step-2">
-          <span class="step-icon">○</span>
-          <span class="step-text">Setting up game</span>
-        </div>
-      </div>
-      
-      <div class="loading-error" id="loading-error" style="display: none;">
-        <div class="error-message" id="error-message">Connection failed</div>
-        <button class="retry-button" id="retry-button">Retry Connection</button>
-      </div>
-    </div>
-  </div>
+  <!-- Old initial loading screen removed - now using pixel art loading -->
 
   <!-- Login/Register Modal -->
   <div id="auth-screen" class="auth-modal" style="display: none;">
@@ -64,18 +27,18 @@
       <div class="auth-modal-content">
         <h2 id="auth-title">Welcome to Linera Flappy!</h2>
         
-        <!-- Login Form -->
-        <div id="login-form" class="auth-form">
+        <!-- Single Login/Register Form -->
+        <div id="auth-form" class="auth-form">
           <div class="form-group">
-            <label for="login-username">Username</label>
-            <input type="text" id="login-username" class="form-input" placeholder="Enter your username..." maxlength="20" />
+            <label for="auth-username">Discord Username</label>
+            <input type="text" id="auth-username" class="form-input" placeholder="Enter your Discord username..." maxlength="20" />
           </div>
           
           <div class="form-group">
-            <label for="login-password">Password</label>
+            <label for="auth-password">Password</label>
             <div class="password-field">
-              <input type="password" id="login-password" class="form-input" placeholder="Enter your password..." />
-              <button type="button" id="toggle-login-password" class="password-toggle">👁</button>
+              <input type="password" id="auth-password" class="form-input" placeholder="Enter your password..." />
+              <button type="button" id="toggle-auth-password" class="password-toggle">👁</button>
             </div>
           </div>
           
@@ -83,44 +46,7 @@
             <div class="validation-message" id="auth-validation-message">Invalid credentials</div>
           </div>
           
-          <div class="auth-actions">
-            <button id="login-btn" class="primary-auth-button">Login</button>
-            <button id="show-register-btn" class="secondary-auth-button">Create Account</button>
-          </div>
-        </div>
-        
-        <!-- Register Form -->
-        <div id="register-form" class="auth-form" style="display: none;">
-          <div class="form-group">
-            <label for="register-username">Username</label>
-            <input type="text" id="register-username" class="form-input" placeholder="Choose a username..." maxlength="20" />
-          </div>
-          
-          <div class="form-group">
-            <label for="register-password">Password</label>
-            <div class="password-field">
-              <input type="password" id="register-password" class="form-input" placeholder="Choose a password..." />
-              <button type="button" id="toggle-register-password" class="password-toggle">👁</button>
-            </div>
-          </div>
-          
-          <div class="form-group">
-            <label for="register-confirm-password">Confirm Password</label>
-            <div class="password-field">
-              <input type="password" id="register-confirm-password" class="form-input" placeholder="Confirm your password..." />
-              <button type="button" id="toggle-register-confirm-password" class="password-toggle">👁</button>
-            </div>
-          </div>
-          
-          <div class="auth-validation" id="register-validation" style="display: none;">
-            <div class="validation-message" id="register-validation-message">Passwords do not match</div>
-          </div>
-          
           <div class="auth-info">
-            <div class="info-item">
-              <span class="info-icon">ℹ</span>
-              <span class="info-text">Username: 3-20 characters</span>
-            </div>
             <div class="info-item">
               <span class="info-icon">🔒</span>
               <span class="info-text">Password: At least 6 characters</span>
@@ -129,26 +55,17 @@
               <span class="info-icon">🎮</span>
               <span class="info-text">This name will appear on leaderboards</span>
             </div>
+            <div class="info-item">
+              <span class="info-icon">✨</span>
+              <span class="info-text">New users will be automatically registered</span>
+            </div>
           </div>
           
           <div class="auth-actions">
-            <button id="register-btn" class="primary-auth-button">Create Account</button>
-            <button id="show-login-btn" class="secondary-auth-button">Back to Login</button>
+            <button id="auth-btn" class="primary-auth-button">Login / Register</button>
           </div>
         </div>
         
-        <!-- Demo Account Info -->
-        <div class="demo-info">
-          <div class="demo-accounts">
-            <h4>Demo Accounts</h4>
-            <div class="demo-account">
-              <strong>Admin:</strong> admin / admin123
-            </div>
-            <div class="demo-account">
-              <strong>Demo:</strong> demo / demo123
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
