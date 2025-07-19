@@ -211,22 +211,22 @@ impl Contract for FlappyContract {
                 let tournament_id = format!("tournament_{}", counter);
                 self.state.tournament_counter.set(counter + 1);
 
-                // Validate time constraints
+                // Validate time constraints (comparing raw seconds before conversion)
                 if let (Some(start), Some(end)) = (start_time, end_time) {
                     if end <= start {
                         panic!("End time must be after start time");
                     }
                 }
 
-                // Create tournament
+                // Create tournament - convert user-provided timestamps from seconds to microseconds
                 let tournament = Tournament {
                     id: tournament_id.clone(),
                     name,
                     description,
                     creator: admin_user.username.clone(), // Use authenticated admin's username
                     status: TournamentStatus::Registration,
-                    start_time,
-                    end_time,
+                    start_time: start_time.map(|t| t * 1_000_000), // Convert seconds to microseconds
+                    end_time: end_time.map(|t| t * 1_000_000), // Convert seconds to microseconds
                     participants: Vec::new(),
                     results: Vec::new(),
                     created_at: self.runtime.system_time().micros(),
@@ -396,14 +396,14 @@ impl Contract for FlappyContract {
                     panic!("Can only update tournaments in registration phase");
                 }
 
-                // Validate time constraints if both provided
+                // Validate time constraints if both provided (comparing raw seconds before conversion)
                 if let (Some(start), Some(end)) = (start_time, end_time) {
                     if end <= start {
                         panic!("End time must be after start time");
                     }
                 }
 
-                // Update fields
+                // Update fields - convert user-provided timestamps from seconds to microseconds
                 if let Some(name) = name {
                     tournament.name = name;
                 }
@@ -411,10 +411,10 @@ impl Contract for FlappyContract {
                     tournament.description = description;
                 }
                 if let Some(start_time) = start_time {
-                    tournament.start_time = Some(start_time);
+                    tournament.start_time = Some(start_time * 1_000_000); // Convert seconds to microseconds
                 }
                 if let Some(end_time) = end_time {
-                    tournament.end_time = Some(end_time);
+                    tournament.end_time = Some(end_time * 1_000_000); // Convert seconds to microseconds
                 }
 
                 self.state.tournaments.insert(&tournament_id, tournament).expect("Failed to update tournament");
@@ -462,6 +462,11 @@ impl Contract for FlappyContract {
 
         if is_bouncing {
             return;
+        }
+
+        // Auto-update tournament statuses before processing messages
+        if *self.state.is_leaderboard_chain.get() {
+            self.update_tournament_statuses().await;
         }
 
         match message {
@@ -665,6 +670,9 @@ impl FlappyContract {
                         if current_time >= start_time {
                             tournament.status = TournamentStatus::Active;
                             updated = true;
+                            
+                            #[cfg(test)]
+                            println!("Auto-started tournament {} at time {}", tournament_id, current_time);
                         }
                     }
                 }
@@ -682,6 +690,9 @@ impl FlappyContract {
                             }
                             
                             updated = true;
+                            
+                            #[cfg(test)]
+                            println!("Auto-ended tournament {} at time {}", tournament_id, current_time);
                         }
                     }
                 }

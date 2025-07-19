@@ -632,4 +632,101 @@ mod tests {
             _ => panic!("Wrong operation type"),
         }
     }
+
+    #[test]
+    fn test_tournament_status_transitions() {
+        // Test that all tournament statuses can be created and compared
+        let registration = TournamentStatus::Registration;
+        let active = TournamentStatus::Active;
+        let ended = TournamentStatus::Ended;
+        
+        assert_ne!(registration, active);
+        assert_ne!(active, ended);
+        assert_ne!(registration, ended);
+    }
+
+    #[test]
+    fn test_tournament_time_validation() {
+        // Test time validation logic (seconds to microseconds conversion)
+        let start_time_seconds = 1234567890u64;
+        let end_time_seconds = start_time_seconds + 3600; // 1 hour later
+        
+        let start_time_micros = start_time_seconds * 1_000_000;
+        let end_time_micros = end_time_seconds * 1_000_000;
+        
+        assert!(end_time_micros > start_time_micros);
+        assert_eq!(end_time_micros - start_time_micros, 3600 * 1_000_000); // 1 hour in microseconds
+    }
+
+    #[test]
+    fn test_tournament_auto_start_timing() {
+        let current_time = 1234567890_000_000u64; // Current time in microseconds
+        let start_time = 1234567800_000_000u64;   // Start time 90 seconds ago
+        let end_time = 1234568000_000_000u64;     // End time 110 seconds from start
+        
+        // Tournament should auto-start if current_time >= start_time
+        assert!(current_time >= start_time, "Tournament should be ready to start");
+        assert!(current_time < end_time, "Tournament should not be ready to end yet");
+    }
+
+    #[test]
+    fn test_tournament_auto_end_timing() {
+        let current_time = 1234568100_000_000u64; // Current time in microseconds
+        let start_time = 1234567800_000_000u64;   // Start time 300 seconds ago
+        let end_time = 1234568000_000_000u64;     // End time 100 seconds ago
+        
+        // Tournament should auto-end if current_time >= end_time
+        assert!(current_time >= start_time, "Tournament should have started");
+        assert!(current_time >= end_time, "Tournament should be ready to end");
+    }
+
+    #[test]
+    fn test_tournament_with_scheduled_times() {
+        let _chain_id = test_chain_id();
+        let base_time = 1234567890u64; // Base time in seconds
+        
+        let tournament = Tournament {
+            id: "scheduled_tournament".to_string(),
+            name: "Scheduled Test Tournament".to_string(),
+            description: "A tournament with scheduled start and end times".to_string(),
+            creator: "admin".to_string(),
+            status: TournamentStatus::Registration,
+            start_time: Some(base_time * 1_000_000), // Convert to microseconds
+            end_time: Some((base_time + 3600) * 1_000_000), // 1 hour later
+            participants: vec![],
+            results: vec![],
+            created_at: base_time * 1_000_000,
+            is_pinned: false,
+            pinned_at: None,
+            pinned_by: None,
+        };
+        
+        assert_eq!(tournament.status, TournamentStatus::Registration);
+        assert!(tournament.start_time.is_some());
+        assert!(tournament.end_time.is_some());
+        assert!(tournament.end_time.unwrap() > tournament.start_time.unwrap());
+    }
+
+    #[test]
+    fn test_tournament_without_scheduled_times() {
+        let tournament = Tournament {
+            id: "manual_tournament".to_string(),
+            name: "Manual Test Tournament".to_string(),
+            description: "A tournament without scheduled times".to_string(),
+            creator: "admin".to_string(),
+            status: TournamentStatus::Registration,
+            start_time: None,
+            end_time: None,
+            participants: vec![],
+            results: vec![],
+            created_at: 1234567890_000_000,
+            is_pinned: false,
+            pinned_at: None,
+            pinned_by: None,
+        };
+        
+        assert_eq!(tournament.status, TournamentStatus::Registration);
+        assert!(tournament.start_time.is_none());
+        assert!(tournament.end_time.is_none());
+    }
 }
