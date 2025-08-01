@@ -130,9 +130,6 @@ export class LineraClient {
    * This should be called on logout to prevent chain creation errors
    */
   async reset() {
-    // Clear Linera's internal IndexedDB first
-    await this.clearLineraIndexedDB();
-
     // Clear all instance variables
     this.counter = null;
     this.wallet = null;
@@ -198,7 +195,6 @@ export class LineraClient {
     this.client = null;
     this.counter = null;
     this.faucet = null;
-
   }
 
   // Clear all Linera-related storage (use with caution)
@@ -210,9 +206,7 @@ export class LineraClient {
       const deleteDB = indexedDB.deleteDatabase("linera-storage");
       deleteDB.onsuccess = () => {};
       deleteDB.onerror = () => {};
-    } catch (error) {
-    }
-
+    } catch (error) {}
   }
 
   async setupGame(playerName) {
@@ -334,7 +328,6 @@ export class LineraClient {
   // Helper method to query leaderboard chain directly
   async queryLeaderboardChain(query) {
     try {
-
       const response = await fetch(this.LEADERBOARD_CHAIN_FULL_URL, {
         method: "POST",
         headers: {
