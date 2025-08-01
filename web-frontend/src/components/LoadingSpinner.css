@@ -183,6 +183,11 @@
 /* Loading Text Container */
 .loading-text-container {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .loading-title {
@@ -212,6 +217,8 @@
 .loading-progress {
   display: flex;
   justify-content: center;
+  align-items: center;
+  width: 100%;
   margin-top: 1rem;
 }
 
@@ -220,6 +227,9 @@
   gap: 8px;
   justify-content: center;
   align-items: center;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
 }
 
 .progress-dots .dot {
@@ -235,14 +245,34 @@
 }
 
 .progress-dots .dot:nth-child(1) {
-  animation-delay: -0.32s;
+  animation-delay: -0.56s;
 }
 
 .progress-dots .dot:nth-child(2) {
-  animation-delay: -0.16s;
+  animation-delay: -0.48s;
 }
 
 .progress-dots .dot:nth-child(3) {
+  animation-delay: -0.40s;
+}
+
+.progress-dots .dot:nth-child(4) {
+  animation-delay: -0.32s;
+}
+
+.progress-dots .dot:nth-child(5) {
+  animation-delay: -0.24s;
+}
+
+.progress-dots .dot:nth-child(6) {
+  animation-delay: -0.16s;
+}
+
+.progress-dots .dot:nth-child(7) {
+  animation-delay: -0.08s;
+}
+
+.progress-dots .dot:nth-child(8) {
   animation-delay: 0s;
 }
 
@@ -258,8 +288,8 @@
 }
 
 .linera-logo-spinner.score .pixel.on {
-  background-color: #22c55e;
-  box-shadow: 0 0 6px #22c55e, inset 1px 1px 0 rgba(255, 255, 255, 0.3);
+  background-color: #de2a02;
+  box-shadow: 0 0 6px #de2a02, inset 1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .linera-logo-spinner.leaderboard .pixel.on {
@@ -400,6 +430,11 @@
     font-size: 0.6rem;
   }
   
+  .progress-dots {
+    gap: 6px;
+    max-width: 250px;
+  }
+  
   .progress-dots .dot {
     width: 10px;
     height: 10px;
@@ -423,6 +458,11 @@
   
   .loading-message {
     font-size: 0.55rem;
+  }
+  
+  .progress-dots {
+    gap: 5px;
+    max-width: 200px;
   }
   
   .progress-dots .dot {

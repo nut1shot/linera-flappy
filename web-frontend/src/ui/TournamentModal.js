@@ -222,47 +222,18 @@ export class TournamentModal {
   async setupJoinTournamentButton(tournament) {
     const joinBtn = this.joinTournamentFromModalBtn;
 
-    if (tournament.status === "Ended") {
-      // Hide the join button completely for ended tournaments
-      joinBtn.style.display = "none";
-      return;
-    }
-
-    // Show loading state while checking participation
-    joinBtn.style.display = "block";
-    joinBtn.textContent = "CHECKING...";
-    joinBtn.disabled = true;
-    joinBtn.style.opacity = "0.6";
-    joinBtn.style.cursor = "not-allowed";
-
-    try {
-      // Check if user is already a participant
-      const isParticipant = await this.lineraClient?.isTournamentParticipant(tournament.id, this.playerName);
-      
-      if (isParticipant) {
-        // User is already joined - show joined state
-        joinBtn.textContent = "ALREADY JOINED";
-        joinBtn.disabled = true;
-        joinBtn.style.opacity = "0.6";
-        joinBtn.style.cursor = "not-allowed";
-      } else {
-        // User not joined - show join button
-        joinBtn.textContent = "JOIN TOURNAMENT";
-        joinBtn.disabled = false;
-        joinBtn.style.opacity = "1";
-        joinBtn.style.cursor = "pointer";
-        
-        // Set up click handler
-        joinBtn.onclick = () => this.joinTournamentFromModal();
-      }
-    } catch (error) {
-      console.error("Failed to check tournament participation:", error);
-      // On error, show join button anyway
+    // Same condition as Available Tournaments: Show button only for REGISTRATION or ACTIVE status
+    if (tournament.status === "REGISTRATION" || tournament.status === "ACTIVE") {
+      joinBtn.style.display = "block";
       joinBtn.textContent = "JOIN TOURNAMENT";
       joinBtn.disabled = false;
       joinBtn.style.opacity = "1";
       joinBtn.style.cursor = "pointer";
+      
+      // Set up click handler
       joinBtn.onclick = () => this.joinTournamentFromModal();
+    } else {
+      joinBtn.style.display = "none";
     }
   }
 
@@ -288,7 +259,6 @@ export class TournamentModal {
       const tournament = this.currentTournament;
 
       if (tournament) {
-        console.log("Joining tournament:", tournament.name, "ID:", tournament.id);
         
         // Update loading message
         spinner.updateMessage('Verifying tournament eligibility...');
@@ -347,7 +317,6 @@ export class TournamentModal {
       const tournament = this.currentTournament;
 
       if (tournament) {
-        console.log("Refreshing tournament leaderboard for:", tournament.name, "ID:", tournament.id);
         
         // Update loading message
         spinner.updateMessage('Fetching latest tournament data...');
@@ -357,7 +326,6 @@ export class TournamentModal {
         // Update loading message for success
         spinner.updateMessage('Leaderboard updated successfully!');
         
-        console.log("Tournament leaderboard refreshed successfully");
         
         // Small delay to show success message
         await new Promise(resolve => setTimeout(resolve, 600));

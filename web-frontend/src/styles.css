@@ -1023,6 +1023,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  padding: 10px;
   min-width: 300px;
 }
 
@@ -1037,14 +1038,17 @@ canvas {
 }
 
 .container {
-  max-width: 288px;
-  width: 100%;
+  max-width: none; /* Remove fixed width constraint to allow responsive scaling */
+  width: auto; /* Allow container to fit canvas size */
   padding: 0;
   background: none;
   box-shadow: none;
   text-align: center;
   position: relative;
   margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .current-mode-info {
@@ -1778,7 +1782,6 @@ body::before {
 
 .loading-progress {
   height: 100%;
-  background: linear-gradient(90deg, #4CAF50, #5CBF60);
   width: 0%;
   transition: width 0.3s ease;
   position: relative;
@@ -2508,12 +2511,22 @@ body::before {
 }
 
 #gameCanvas {
-  max-width: 85vw;
-  max-height: 60vh;
+  max-width: 90vw;
+  max-height: none; /* Remove height constraint to allow full scaling */
   width: auto;
   height: auto;
   touch-action: manipulation;
   object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Enhanced mobile canvas styling */
+#gameCanvas.mobile-canvas {
+  max-width: 95vw;
+  max-height: 75vh; /* Keep height constraint only for mobile */
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
 /* Mobile responsive breakpoints */
@@ -2557,8 +2570,31 @@ body::before {
   }
   
   #gameCanvas {
-    max-width: 80vw !important;
-    max-height: 55vh !important;
+    max-width: 90vw !important;
+    max-height: 70vh !important;
+  }
+  
+  #gameCanvas.mobile-canvas {
+    max-width: 95vw !important;
+    max-height: 75vh !important;
+  }
+  
+  /* Enhanced mobile touch targets */
+  .start-button,
+  .restart-button,
+  .mode-button,
+  .primary-auth-button,
+  .refresh-button {
+    min-height: 48px !important;
+    padding: 12px 20px !important;
+    font-size: 14px !important;
+    touch-action: manipulation;
+  }
+  
+  .mobile-touch-target {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    padding: 8px !important;
   }
   
   /* Increase font sizes for mobile readability */

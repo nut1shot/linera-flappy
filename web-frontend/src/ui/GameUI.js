@@ -1,3 +1,5 @@
+import { GAME_CONFIG, UI_CONFIG } from "../constants/GameConstants.js";
+
 export class GameUI {
   constructor() {
     this.elements = {};
@@ -243,7 +245,6 @@ export class GameUI {
       }
     }
 
-    console.log(`Showing screen: ${screenName}`);
   }
 
   // Loading UI
@@ -710,33 +711,51 @@ export class GameUI {
     const canvas = this.elements.canvas;
 
     // Keep original game dimensions for consistent gameplay
-    const gameWidth = 288;
-    const gameHeight = 512;
+    const gameWidth = GAME_CONFIG.CANVAS.BASE_WIDTH;
+    const gameHeight = GAME_CONFIG.CANVAS.BASE_HEIGHT;
     const aspectRatio = gameHeight / gameWidth;
 
-    // Calculate safe display size for mobile
+    // Detect device type and get appropriate scaling config
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
+    const isMobile = viewportWidth <= UI_CONFIG.MOBILE_BREAKPOINT;
+    
+    const scaleConfig = isMobile ? 
+      GAME_CONFIG.CANVAS.MOBILE_SCALE : 
+      GAME_CONFIG.CANVAS.DESKTOP_SCALE;
 
-    // Use very conservative sizing to prevent overlap
-    const maxWidth = Math.min(viewportWidth * 0.8, gameWidth * 1.2);
-    const maxHeight = Math.min(viewportHeight * 0.55, gameHeight);
+    // Calculate maximum allowed dimensions with enhanced scaling
+    const maxWidthByViewport = viewportWidth * (scaleConfig.MAX_VIEWPORT_WIDTH_PERCENT / 100);
+    const maxWidthByScale = gameWidth * scaleConfig.MAX_SCALE_MULTIPLIER;
+    const maxHeightByViewport = viewportHeight * (scaleConfig.MAX_VIEWPORT_HEIGHT_PERCENT / 100);
+    
+    const maxWidth = Math.min(maxWidthByViewport, maxWidthByScale);
+    const maxHeight = maxHeightByViewport;
 
     // Start with width-based sizing
-    let displayWidth = Math.min(maxWidth, gameWidth);
+    const initialDisplayWidth = Math.min(maxWidth, gameWidth * scaleConfig.MAX_SCALE_MULTIPLIER);
+    let displayWidth = initialDisplayWidth;
     let displayHeight = displayWidth * aspectRatio;
-
+    
     // If height exceeds available space, scale down based on height
     if (displayHeight > maxHeight) {
       displayHeight = maxHeight;
       displayWidth = displayHeight / aspectRatio;
     }
 
-    // Ensure we don't exceed minimum readable size
-    const minWidth = Math.min(200, viewportWidth * 0.7);
+    // Ensure minimum readable size - use fixed minimums to avoid viewport scaling issues
+    const minWidthFallback = isMobile ? Math.min(viewportWidth * 0.6, 400) : 350; // Fixed 350px minimum for desktop
+    const minWidth = Math.max(scaleConfig.MIN_WIDTH, minWidthFallback);
+    
     if (displayWidth < minWidth) {
       displayWidth = minWidth;
       displayHeight = displayWidth * aspectRatio;
+      
+      // Final check: if still too tall, compromise
+      if (displayHeight > maxHeight) {
+        displayHeight = maxHeight;
+        displayWidth = displayHeight / aspectRatio;
+      }
     }
 
     // Always keep game canvas at original size for consistent game logic
@@ -744,31 +763,16 @@ export class GameUI {
     canvas.height = gameHeight;
 
     // Only scale the display size via CSS
-    canvas.style.width = displayWidth + "px";
-    canvas.style.height = displayHeight + "px";
+    canvas.style.width = Math.round(displayWidth) + "px";
+    canvas.style.height = Math.round(displayHeight) + "px";
+
+    // Add responsive canvas class for CSS targeting
+    canvas.classList.toggle('mobile-canvas', isMobile);
 
     // Don't scale the context - let CSS handle the scaling
     // This preserves game coordinate system
 
-    console.log(
-      `Canvas optimized: Game size ${gameWidth}x${gameHeight}, Display size ${displayWidth}x${displayHeight}`
-    );
-    console.log(
-      `Viewport: ${viewportWidth}x${viewportHeight}, Max allowed: ${maxWidth}x${maxHeight}`
-    );
 
-    // Debug: Check if canvas fits in viewport after DOM update
-    setTimeout(() => {
-      const canvasRect = canvas.getBoundingClientRect();
-      if (
-        canvasRect.width > viewportWidth ||
-        canvasRect.height > viewportHeight
-      ) {
-        console.warn(
-          `Canvas overflow detected! Canvas: ${canvasRect.width}x${canvasRect.height}, Viewport: ${viewportWidth}x${viewportHeight}`
-        );
-      }
-    }, 100);
 
     // Notify game engine of display scale for input handling
     this.emit("canvasScaleChanged", {
@@ -803,7 +807,6 @@ export class GameUI {
   // Helper method to format tournament dates
   formatTournamentDate(timestamp) {
     if (!timestamp) return 'Not set';
-    
     
     try {
       // Handle different timestamp formats

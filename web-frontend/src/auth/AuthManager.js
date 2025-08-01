@@ -7,8 +7,7 @@ export class AuthManager {
     this.currentUser = null;
     this.isAuthenticated = false;
     this.sessionExpiry = null;
-    this.maxLoginAttempts = AUTH_CONFIG.LOGIN.MAX_ATTEMPTS;
-    this.lockoutDuration = AUTH_CONFIG.LOGIN.LOCKOUT_DURATION;
+    // Account lockout removed per user request
     
     // Initialize default accounts on blockchain
     this.initializeDefaultAccounts();
@@ -18,7 +17,6 @@ export class AuthManager {
     // Default accounts are now created during blockchain app instantiation
     // Admin account is created with the leaderboard chain setup
     // Demo account will be created on first login attempt
-    console.log('AuthManager: Default accounts will be created on blockchain during first login');
   }
 
   async generateHash(username, password) {
@@ -45,47 +43,14 @@ export class AuthManager {
     return {};
   }
 
-  saveUser(username, userData) {
+  saveUser() {
     // Users are now stored on blockchain, this method is deprecated
     console.warn('saveUser is deprecated - users are stored on blockchain');
   }
 
-  getLoginAttempts(username) {
-    const attempts = localStorage.getItem(`login_attempts_${username}`);
-    return attempts ? JSON.parse(attempts) : { count: 0, lastAttempt: null };
-  }
+  // Account lockout functionality removed per user request
 
-  updateLoginAttempts(username, success = false) {
-    const attempts = this.getLoginAttempts(username);
-    
-    if (success) {
-      localStorage.removeItem(`login_attempts_${username}`);
-    } else {
-      attempts.count++;
-      attempts.lastAttempt = Date.now();
-      localStorage.setItem(`login_attempts_${username}`, JSON.stringify(attempts));
-    }
-  }
-
-  isAccountLocked(username) {
-    const attempts = this.getLoginAttempts(username);
-    
-    if (attempts.count >= this.maxLoginAttempts) {
-      const timeSinceLastAttempt = Date.now() - attempts.lastAttempt;
-      return timeSinceLastAttempt < this.lockoutDuration;
-    }
-    
-    return false;
-  }
-
-  getAccountLockTimeRemaining(username) {
-    const attempts = this.getLoginAttempts(username);
-    const timeSinceLastAttempt = Date.now() - attempts.lastAttempt;
-    const remaining = this.lockoutDuration - timeSinceLastAttempt;
-    return Math.max(0, Math.ceil(remaining / 1000 / 60)); // minutes
-  }
-
-  async createUser(username, password, role = 'player') {
+  async createUser() {
     // User creation is now handled by blockchain loginOrRegister operation
     // This method is kept for backward compatibility but not used
     console.warn('createUser is deprecated - use loginOrRegister instead');
@@ -97,11 +62,7 @@ export class AuthManager {
       throw new Error('Username and password are required');
     }
 
-    // Check if account is locked locally
-    if (this.isAccountLocked(username)) {
-      const remaining = this.getAccountLockTimeRemaining(username);
-      throw new Error(`Account locked. Try again in ${remaining} minutes.`);
-    }
+    // Account lockout removed per user request
 
     try {
       // Generate hash for blockchain authentication
@@ -114,12 +75,10 @@ export class AuthManager {
       const loginResult = await this.lineraClient.getLoginResult();
       
       if (!loginResult || !loginResult.success) {
-        this.updateLoginAttempts(username, false);
         throw new Error(loginResult?.message || 'Authentication failed');
       }
 
       // Successful login
-      this.updateLoginAttempts(username, true);
       
       // Set session with blockchain user data
       this.currentUser = {
@@ -146,7 +105,6 @@ export class AuthManager {
       };
       
     } catch (error) {
-      this.updateLoginAttempts(username, false);
       throw error;
     }
   }
@@ -197,7 +155,6 @@ export class AuthManager {
       // Re-authenticate automatically using stored credentials hash
       // This is necessary because the chain ID changes on refresh
       if (sessionData.credentialsHash) {
-        console.log('Re-authenticating user with stored credentials for session persistence');
         
         // Call blockchain loginOrRegister operation with stored hash
         await this.lineraClient.loginOrRegister(sessionData.username, sessionData.credentialsHash);
@@ -311,15 +268,14 @@ export class AuthManager {
   }
 
   // Utility method to check if username is available
-  async isUsernameAvailable(username) {
+  async isUsernameAvailable() {
     // Username availability is checked during login/register on blockchain
     // This method is kept for UI validation but always returns true
     return true; // Blockchain will handle duplicate checking
   }
 
-  // Get remaining login attempts
-  getRemainingLoginAttempts(username) {
-    const attempts = this.getLoginAttempts(username);
-    return Math.max(0, this.maxLoginAttempts - attempts.count);
+  // Login attempts tracking removed per user request
+  getRemainingLoginAttempts() {
+    return Infinity; // No limits on login attempts
   }
 }

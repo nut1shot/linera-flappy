@@ -28,7 +28,6 @@ class FlappyGame {
   }
 
   initialize() {
-    console.log("Initializing Flappy Game...");
 
     // Initialize UI
     this.gameUI.initialize();
@@ -56,7 +55,7 @@ class FlappyGame {
       showLogin: () => this.showLogin(),
       showRegister: () => this.showRegister(),
       togglePassword: (fieldId) => this.togglePasswordVisibility(fieldId),
-      logout: () => this.logout(),
+      logout: async () => await this.logout(),
       selectPracticeMode: () => this.selectPracticeMode(),
       selectTournamentMode: () => this.selectTournamentMode(),
       backToModeSelection: () => this.backToModeSelection(),
@@ -126,8 +125,18 @@ class FlappyGame {
         if (data.user.role === "ADMIN") {
           this.gameUI.updateUIBasedOnRole("ADMIN");
         }
+
+        // Update tournament modal with authenticated user's data
+        this.tournamentModal.setGameData(
+          this.gameState.getTournaments(),
+          data.user.username,
+          this.gameEngine.getBest()
+        );
       } else {
         this.gameUI.clearPlayerInfo();
+
+        // Clear tournament modal data on logout
+        this.tournamentModal.setGameData([], "", 0);
       }
     });
   }
@@ -165,18 +174,13 @@ class FlappyGame {
     };
 
     window.editTournament = (tournamentId) => {
-      console.log("Edit tournament:", tournamentId);
       alert("Tournament editing feature coming soon!");
     };
 
     window.toggleTournamentPin = async (tournamentId) => {
-      console.log("Toggle pin tournament:", tournamentId);
       try {
         const tournament = await this.gameState.toggleTournamentPin(
           tournamentId
-        );
-        console.log(
-          `Tournament ${tournament.pinned ? "pinned" : "unpinned"} successfully`
         );
       } catch (error) {
         console.error("Failed to toggle tournament pin:", error);
@@ -185,7 +189,6 @@ class FlappyGame {
     };
 
     window.deleteTournament = async (tournamentId) => {
-      console.log("Delete tournament:", tournamentId);
       if (confirm("Are you sure you want to delete this tournament?")) {
         try {
           await this.gameState.deleteTournament(tournamentId);
@@ -317,7 +320,6 @@ Please check:
       // Store for backward compatibility
       window.counter = result.counter;
 
-      console.log("Linera client initialized successfully");
     } catch (error) {
       console.error("Failed to initialize Linera client:", error);
       throw error;
@@ -363,12 +365,58 @@ Please check:
 
   // Game control methods
   startGame() {
+    // Check if we're in tournament mode and tournament is not yet active
+    const gameMode = this.gameState.getGameMode();
+    const activeTournament = this.gameState.getActiveTournament();
+
+    if (gameMode === "tournament" && activeTournament) {
+      if (activeTournament.status === "REGISTRATION") {
+        alert(
+          `Tournament "${activeTournament.name}" is still in registration phase. Please wait until it becomes active to start playing.`
+        );
+        return;
+      }
+
+      if (
+        activeTournament.status === "ENDED" ||
+        activeTournament.status === "Ended"
+      ) {
+        alert(
+          `Tournament "${activeTournament.name}" has ended. You can no longer play in this tournament.`
+        );
+        return;
+      }
+    }
+
     this.gameUI.hideStartButton();
     // Enable game controls and start the game
     this.gameEngine.enableGameControls();
   }
 
   restartGame() {
+    // Check if we're in tournament mode and tournament is not yet active
+    const gameMode = this.gameState.getGameMode();
+    const activeTournament = this.gameState.getActiveTournament();
+
+    if (gameMode === "tournament" && activeTournament) {
+      if (activeTournament.status === "REGISTRATION") {
+        alert(
+          `Tournament "${activeTournament.name}" is still in registration phase. Please wait until it becomes active to start playing.`
+        );
+        return;
+      }
+
+      if (
+        activeTournament.status === "ENDED" ||
+        activeTournament.status === "Ended"
+      ) {
+        alert(
+          `Tournament "${activeTournament.name}" has ended. You can no longer play in this tournament.`
+        );
+        return;
+      }
+    }
+
     this.gameEngine.resetGameState();
     this.gameUI.hideRestartButton();
     this.gameEngine.startGameLoop();
@@ -378,6 +426,22 @@ Please check:
 
   handleJump() {
     if (this.gameState.getCurrentScreen() === "game-screen") {
+      // Check if we're in tournament mode and tournament is not yet active
+      const gameMode = this.gameState.getGameMode();
+      const activeTournament = this.gameState.getActiveTournament();
+
+      if (gameMode === "tournament" && activeTournament) {
+        if (
+          activeTournament.status === "REGISTRATION" ||
+          activeTournament.status === "ENDED" ||
+          activeTournament.status === "Ended"
+        ) {
+          // Silently ignore jumps when tournament is not active
+          // (User will see alert when they try to start/restart game)
+          return;
+        }
+      }
+
       this.gameEngine.handleJump();
     }
   }
@@ -388,7 +452,6 @@ Please check:
 
   handleScoreUpdate(score) {
     // Score updates are handled by the game engine
-    console.log("Score updated:", score);
   }
 
   async handleGameOver(score, best, isNewHighScore) {
@@ -434,13 +497,6 @@ Please check:
     this.gameUI.updatePlayerBest(currentBest);
     this.gameUI.showRestartButton();
 
-    if (isNewHighScore) {
-      console.log("New high score!", currentBest);
-    }
-
-    console.log(
-      `Game over! Score: ${score}, Best: ${currentBest}, Engine best: ${best}`
-    );
   }
 
   async handleHighScore(score) {
@@ -517,33 +573,46 @@ Please check:
   }
 
   async setupBlockchainGame() {
+    // Show loading spinner for blockchain game setup
+    const spinner = Loading.custom("Setting up blockchain game...", "blockchain");
+    
     try {
       const playerName = this.gameState.getPlayerName();
 
       if (!playerName) {
-        console.error("Player name not set - cannot setup blockchain game");
+          spinner.updateMessage("Player name not set - skipping setup");
+        await new Promise(resolve => setTimeout(resolve, 1000));
         return;
       }
 
-      console.log("Setting up blockchain game for player:", playerName);
+      spinner.updateMessage(`Setting up game for ${playerName}...`);
 
       // Setup game with blockchain leaderboard
       await this.lineraClient.setupGame(playerName);
 
+      spinner.updateMessage("Configuring game state...");
+      
       // Mark game as configured
       this.gameState.setGameConfigured(true);
 
-      console.log("Blockchain game setup completed for:", playerName);
+      spinner.updateMessage("Blockchain game setup complete!");
+      
+      // Show success message briefly
+      await new Promise(resolve => setTimeout(resolve, 800));
     } catch (error) {
       console.error("Failed to setup blockchain game:", error);
+      spinner.updateMessage("Setup failed - continuing with limited functionality");
+      await new Promise(resolve => setTimeout(resolve, 1000));
       // Don't throw error - allow user to continue with limited functionality
+    } finally {
+      // Hide loading spinner
+      spinner.hide();
     }
   }
 
   async handleRegister() {
     // Registration is now integrated into login - this method is deprecated
     // but kept for compatibility during transition
-    console.warn("handleRegister is deprecated - use handleLogin instead");
     await this.handleLogin();
   }
 
@@ -664,26 +733,28 @@ Please check:
     this.clearAuthError();
   }
 
-  logout() {
-    
+  async logout() {
     // Clear authentication and game state
     this.authManager.logout();
     this.gameState.clearAuthenticatedUser();
-    
+
+    // Reset LineraClient to prevent chain creation errors on next login
+    await this.lineraClient.reset();
+
     // Stop any running game loops
     this.gameEngine.stopGameLoop();
     this.gameEngine.resetGameState();
-    
+
     // Reset UI elements
     this.gameUI.hideAuthModal();
     this.gameUI.hideStartButton();
     this.gameUI.hideRestartButton();
-    
+
     // Reset loading state and restart the application
     this.gameState.setInitialLoadingComplete(false);
     this.gameState.setCurrentScreen("initial-loading-screen");
-    
-    // Restart the loading process with pixel art UI
+
+    // Restart the loading process
     this.startLoadingProcess();
   }
 
@@ -988,7 +1059,6 @@ Please check:
         this.gameEngine.setBest(0);
       }
 
-      console.log("Practice leaderboard loaded successfully");
     } catch (error) {
       console.error("Failed to load practice leaderboard:", error);
       // Set empty leaderboard on error
@@ -1035,7 +1105,6 @@ Please check:
         this.gameEngine.setBest(0);
       }
 
-      console.log("Tournament leaderboard loaded successfully");
     } catch (error) {
       console.error("Failed to load tournament leaderboard:", error);
       // Set empty leaderboard on error
@@ -1057,7 +1126,6 @@ Please check:
       // Update UI with practice best score
       this.gameUI.updatePlayerBest(practiceData.myPracticeBest);
 
-      console.log("Personal practice statistics loaded successfully");
     } catch (error) {
       console.error("Failed to load personal practice statistics:", error);
       // Set empty statistics on error
@@ -1074,20 +1142,17 @@ Please check:
       if (gameMode === "practice") {
         // Refresh practice leaderboard
         await this.loadPracticeLeaderboard();
-        console.log("Practice leaderboard refreshed");
       } else if (gameMode === "tournament") {
         // Refresh tournament leaderboard for current tournament
         const activeTournament = this.gameState.getActiveTournament();
         if (activeTournament && activeTournament.id) {
           await this.loadTournamentLeaderboard(activeTournament.id);
-          console.log("Tournament leaderboard refreshed");
         } else {
           console.warn("No active tournament to refresh leaderboard for");
         }
       } else {
         // Refresh legacy leaderboard
         await this.loadLegacyLeaderboard();
-        console.log("Legacy leaderboard refreshed");
       }
     } catch (error) {
       console.error("Failed to refresh leaderboard:", error);
@@ -1117,7 +1182,6 @@ Please check:
         this.gameEngine.setMyRank(playerRank);
       }
 
-      console.log("Legacy leaderboard loaded successfully");
     } catch (error) {
       console.error("Failed to load legacy leaderboard:", error);
     }
@@ -1157,55 +1221,63 @@ Please check:
   }
 
   async selectTournament(tournamentId) {
-
     const tournament = this.gameState
       .getTournaments()
       .find((t) => t.id === tournamentId);
 
-
     if (tournament && tournament.status !== "Ended") {
       try {
-
         // Join tournament if not already joined
         await this.gameState.joinTournament(tournamentId);
 
-        // Reset game state before entering tournament mode
-        this.gameEngine.stopGameLoop();
-
-        this.gameEngine.resetGameState();
-
-        this.gameState.setActiveTournament(tournament);
-        this.gameState.setGameMode("tournament");
-        this.gameState.setCurrentScreen("game-screen");
-
-        this.gameUI.showStartButton();
-        this.gameUI.hideRestartButton();
-        this.gameUI.updateGameModeDisplay("tournament");
-        this.gameUI.updateTournamentInfo(tournament);
-
-        // Optimize canvas for current device
-        this.gameUI.optimizeCanvasForMobile();
-
-        // Start the game loop to show the initial state
-        this.gameEngine.startGameLoop();
-
-
-        // Load tournament leaderboard (do this after starting the game loop)
-        try {
-          await this.loadTournamentLeaderboard(tournament.id);
-        } catch (leaderboardError) {
-          console.error(
-            "Failed to load tournament leaderboard:",
-            leaderboardError
+        // Check tournament status before entering game screen
+        if (tournament.status === "REGISTRATION") {
+          // Tournament is in registration phase - only show message, don't enter game screen
+          alert(
+            `Welcome to "${tournament.name}"!\n\nThis tournament is currently in the registration phase. You have successfully joined, but gameplay will be available once the tournament becomes active.\n\nPlease check back when the tournament status changes to "ACTIVE".`
           );
-          // Game should still work even if leaderboard fails
+          return; // Exit early, don't go to game screen
         }
 
+        // Only enter game screen if tournament is ACTIVE
+        if (tournament.status === "ACTIVE" || tournament.status === "Active") {
+          // Reset game state before entering tournament mode
+          this.gameEngine.stopGameLoop();
+          this.gameEngine.resetGameState();
+
+          this.gameState.setActiveTournament(tournament);
+          this.gameState.setGameMode("tournament");
+          this.gameState.setCurrentScreen("game-screen");
+
+          this.gameUI.showStartButton();
+          this.gameUI.hideRestartButton();
+          this.gameUI.updateGameModeDisplay("tournament");
+          this.gameUI.updateTournamentInfo(tournament);
+
+          // Optimize canvas for current device
+          this.gameUI.optimizeCanvasForMobile();
+
+          // Start the game loop to show the initial state
+          this.gameEngine.startGameLoop();
+
+          // Load tournament leaderboard (do this after starting the game loop)
+          try {
+            await this.loadTournamentLeaderboard(tournament.id);
+          } catch (leaderboardError) {
+            console.error(
+              "Failed to load tournament leaderboard:",
+              leaderboardError
+            );
+            // Game should still work even if leaderboard fails
+          }
+        } else {
+          // Tournament status is neither REGISTRATION nor ACTIVE
+          alert(`Tournament "${tournament.name}" joined successfully!`);
+        }
       } catch (error) {
         console.error("Failed to join tournament:", error);
         alert("Failed to join tournament. Please try again.");
       }
-    } else {
     }
   }
 
@@ -1213,7 +1285,6 @@ Please check:
   async submitScoreToLeaderboard(score) {
     try {
       if (!this.gameState.getPlayerName()) {
-        console.log("No player name set, skipping score submission");
         return;
       }
 
@@ -1230,7 +1301,6 @@ Please check:
         await this.submitLegacyScore(score);
       }
 
-      console.log(`${gameMode || "legacy"} score submitted successfully`);
     } catch (error) {
       console.error("Failed to submit score:", error);
     }
@@ -1254,7 +1324,6 @@ Please check:
 
       // Update best score locally if current score is better
       const currentBest = this.gameState.getPracticeBest();
-      console.log("currentBest", currentBest);
       if (score > currentBest) {
         this.gameState.setPracticeBest(score);
         this.gameUI.updatePlayerBest(score);
@@ -1287,7 +1356,6 @@ Please check:
       }
 
       spinner.updateMessage("Practice score submitted successfully!");
-      console.log("Practice score submitted successfully");
 
       // Show success message briefly
       await new Promise((resolve) => setTimeout(resolve, 800));
@@ -1320,9 +1388,6 @@ Please check:
         this.gameState.addTournamentScore(activeTournament.id, score);
 
         spinner.updateMessage("Tournament score submitted successfully!");
-        console.log(
-          `Tournament score ${score} submitted for tournament ${activeTournament.id}`
-        );
 
         // Show success message briefly
         await new Promise((resolve) => setTimeout(resolve, 800));
@@ -1378,60 +1443,63 @@ Please check:
       if (!isAlreadyParticipant) {
         // Only attempt to join if not already a participant
         await this.gameState.joinTournament(tournamentId);
-        console.log("Successfully joined tournament!");
       } else {
-        console.log(
-          "User is already a participant in this tournament, skipping join."
-        );
       }
 
       // Find the tournament and offer to enter tournament mode
       const tournament = this.gameState
         .getTournaments()
         .find((t) => t.id === tournamentId);
-      if (
-        tournament &&
-        (tournament.status === "ACTIVE" || tournament.status === "Active")
-      ) {
-        const message = isAlreadyParticipant
-          ? "You are already in this tournament! Do you want to play in tournament mode now?"
-          : "Successfully joined tournament! Do you want to play in tournament mode now?";
-        const enterTournamentMode = confirm(message);
-        if (enterTournamentMode) {
-          // Reset game state before entering tournament mode
-          this.gameEngine.stopGameLoop();
-          this.gameEngine.resetGameState();
+      if (tournament) {
+        if (tournament.status === "ACTIVE" || tournament.status === "Active") {
+          const message = isAlreadyParticipant
+            ? "You are already in this tournament! Do you want to play in tournament mode now?"
+            : "Successfully joined tournament! Do you want to play in tournament mode now?";
+          const enterTournamentMode = confirm(message);
+          if (enterTournamentMode) {
+            // Reset game state before entering tournament mode
+            this.gameEngine.stopGameLoop();
+            this.gameEngine.resetGameState();
 
-          // Set this tournament as active and enter tournament mode
-          this.gameState.setActiveTournament(tournament);
-          this.gameState.setGameMode("tournament");
-          this.gameState.setCurrentScreen("game-screen");
-          this.gameUI.showStartButton();
-          this.gameUI.hideRestartButton();
-          this.gameUI.updateGameModeDisplay("tournament");
-          this.gameUI.updateTournamentInfo(tournament);
+            // Set this tournament as active and enter tournament mode
+            this.gameState.setActiveTournament(tournament);
+            this.gameState.setGameMode("tournament");
+            this.gameState.setCurrentScreen("game-screen");
+            this.gameUI.showStartButton();
+            this.gameUI.hideRestartButton();
+            this.gameUI.updateGameModeDisplay("tournament");
+            this.gameUI.updateTournamentInfo(tournament);
 
-          // Optimize canvas for current device
-          this.gameUI.optimizeCanvasForMobile();
+            // Optimize canvas for current device
+            this.gameUI.optimizeCanvasForMobile();
 
-          // Start the game loop to show the initial state
-          this.gameEngine.startGameLoop();
+            // Start the game loop to show the initial state
+            this.gameEngine.startGameLoop();
 
-          // Load tournament leaderboard (do this after starting the game loop)
-          try {
-            await this.loadTournamentLeaderboard(tournament.id);
-          } catch (leaderboardError) {
-            console.error(
-              "Failed to load tournament leaderboard:",
-              leaderboardError
-            );
-            // Game should still work even if leaderboard fails
+            // Load tournament leaderboard (do this after starting the game loop)
+            try {
+              await this.loadTournamentLeaderboard(tournament.id);
+            } catch (leaderboardError) {
+              console.error(
+                "Failed to load tournament leaderboard:",
+                leaderboardError
+              );
+              // Game should still work even if leaderboard fails
+            }
           }
-        } else {
-          alert(
-            "Tournament joined! You can select this tournament from the tournament list to play later."
-          );
+        } else if (tournament.status === "REGISTRATION") {
+          // Tournament is in registration phase - use same message as modal
+          const message = isAlreadyParticipant
+            ? `Welcome to "${tournament.name}"!\n\nYou are already registered for this tournament. The tournament is currently in the registration phase, and gameplay will be available once the tournament becomes active.\n\nPlease check back when the tournament status changes to "ACTIVE".`
+            : `Welcome to "${tournament.name}"!\n\nThis tournament is currently in the registration phase. You have successfully joined, but gameplay will be available once the tournament becomes active.\n\nPlease check back when the tournament status changes to "ACTIVE".`;
+          alert(message);
         }
+      } else if (tournament.status === "REGISTRATION") {
+        // Tournament is in registration phase - use same message as modal
+        const message = isAlreadyParticipant
+          ? `Welcome to "${tournament.name}"!\n\nYou are already registered for this tournament. The tournament is currently in the registration phase, and gameplay will be available once the tournament becomes active.\n\nPlease check back when the tournament status changes to "ACTIVE".`
+          : `Welcome to "${tournament.name}"!\n\nThis tournament is currently in the registration phase. You have successfully joined, but gameplay will be available once the tournament becomes active.\n\nPlease check back when the tournament status changes to "ACTIVE".`;
+        alert(message);
       } else {
         alert("Successfully joined tournament!");
       }
@@ -1548,6 +1616,5 @@ Please check:
 
 // Initialize the game when DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("DOM loaded, initializing game...");
   new FlappyGame();
 });

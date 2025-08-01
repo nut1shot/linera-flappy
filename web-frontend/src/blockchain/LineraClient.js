@@ -54,10 +54,6 @@ export class LineraClient {
 
   async initialize() {
     try {
-      console.log("Initializing Linera client...");
-      console.log("App URL:", this.APP_URL);
-      console.log("App ID:", this.APP_ID);
-
       // Always reinitialize on refresh to avoid stale state
       this.isInitialized = false;
       this.client = null;
@@ -67,7 +63,6 @@ export class LineraClient {
 
       // Initialize the Linera library
       await linera.default();
-      console.log("Linera library initialized");
 
       // For development with faucet, we can't persist wallets across sessions
       // But we can avoid the expensive chain claiming process if the current session
@@ -81,26 +76,20 @@ export class LineraClient {
         this.counter &&
         this.chainId
       ) {
-        console.log("Already initialized, reusing existing setup");
         return {
           chainId: this.chainId,
           counter: this.counter,
         };
       }
 
-      console.log("Creating new wallet and claiming new chain");
-
       // Create faucet
       this.faucet = new linera.Faucet(this.APP_URL);
-      console.log("Faucet created");
 
       // Create wallet - this will always be fresh in development mode
       this.wallet = await this.faucet.createWallet();
-      console.log("Wallet created", this.wallet, typeof this.wallet);
 
       // Create client with the wallet
       this.client = await new linera.Client(this.wallet);
-      console.log("Client created", this.client, typeof this.client);
 
       // Validate client instance
       if (!this.client || typeof this.client !== "object") {
@@ -109,11 +98,9 @@ export class LineraClient {
 
       // Claim chain from faucet - this will create a new chain
       this.chainId = await this.faucet.claimChain(this.client);
-      console.log("Chain claimed:", this.chainId);
 
       // Get the application frontend
       this.counter = await this.client.frontend().application(this.APP_ID);
-      console.log("Application frontend obtained");
 
       // Save chainId for display purposes only
       this.saveChainId();
@@ -127,21 +114,52 @@ export class LineraClient {
       window.gameFaucet = this.faucet;
 
       // Make clear storage available for debugging
-      window.clearLineraStorage = () => this.clearAllLineraStorage();
-
+      window.clearLineraStorage = () => this.reset();
       return {
         chainId: this.chainId,
         counter: this.counter,
       };
     } catch (error) {
       console.error("Failed to initialize Linera client:", error);
-      console.error("Error details:", {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-      });
       throw error;
     }
+  }
+
+  /**
+   * Reset the LineraClient state completely
+   * This should be called on logout to prevent chain creation errors
+   */
+  async reset() {
+    // Clear Linera's internal IndexedDB first
+    await this.clearLineraIndexedDB();
+
+    // Clear all instance variables
+    this.counter = null;
+    this.wallet = null;
+    this.client = null;
+    this.faucet = null;
+    this.chainId = "";
+    this.leaderboardClient = null;
+    this.isInitialized = false;
+
+    // Clear global variables
+    if (typeof window !== "undefined") {
+      window.gameWallet = null;
+      window.gameClient = null;
+      window.gameFaucet = null;
+      window.counter = null;
+    }
+
+    // Clear stored data in localStorage
+    try {
+      localStorage.removeItem(this.STORAGE_KEYS.CHAIN_ID);
+      localStorage.removeItem(this.STORAGE_KEYS.WALLET_DATA);
+      localStorage.removeItem(this.STORAGE_KEYS.WALLET_SERIALIZED);
+    } catch (error) {
+      console.warn("Failed to clear localStorage:", error);
+    }
+
+    window.location.reload();
   }
 
   // ==========================================
@@ -152,7 +170,6 @@ export class LineraClient {
     try {
       // Save chainId for display purposes
       localStorage.setItem(this.STORAGE_KEYS.CHAIN_ID, this.chainId);
-      console.log("ChainId saved to localStorage:", this.chainId);
 
       // Save wallet data for manual persistence since Linera's built-in persistence
       // doesn't work in development faucet mode
@@ -160,7 +177,6 @@ export class LineraClient {
         try {
           // Store a flag indicating we have wallet data
           localStorage.setItem(this.STORAGE_KEYS.WALLET_DATA, "true");
-          console.log("Wallet persistence flag saved");
         } catch (walletError) {
           console.warn("Failed to save wallet persistence flag:", walletError);
         }
@@ -183,7 +199,6 @@ export class LineraClient {
     this.counter = null;
     this.faucet = null;
 
-    console.log("Wallet data cleared from memory and localStorage");
   }
 
   // Clear all Linera-related storage (use with caution)
@@ -193,13 +208,11 @@ export class LineraClient {
     // Clear IndexedDB that Linera uses
     try {
       const deleteDB = indexedDB.deleteDatabase("linera-storage");
-      deleteDB.onsuccess = () => console.log("Linera IndexedDB cleared");
-      deleteDB.onerror = () => console.log("Failed to clear Linera IndexedDB");
+      deleteDB.onsuccess = () => {};
+      deleteDB.onerror = () => {};
     } catch (error) {
-      console.log("Could not clear Linera IndexedDB:", error);
     }
 
-    console.log("All Linera storage cleared - next refresh will start fresh");
   }
 
   async setupGame(playerName) {
@@ -220,10 +233,6 @@ export class LineraClient {
 
     try {
       const response = await this.counter.query(JSON.stringify(queryObject));
-      console.log(
-        "Game setup completed with leaderboard:",
-        this.LEADERBOARD_CHAIN_ID
-      );
       return response;
     } catch (error) {
       console.error("Failed to setup game:", error);
@@ -325,10 +334,6 @@ export class LineraClient {
   // Helper method to query leaderboard chain directly
   async queryLeaderboardChain(query) {
     try {
-      console.log(
-        "Querying leaderboard chain:",
-        this.LEADERBOARD_CHAIN_FULL_URL
-      );
 
       const response = await fetch(this.LEADERBOARD_CHAIN_FULL_URL, {
         method: "POST",
@@ -378,7 +383,6 @@ export class LineraClient {
 
     try {
       await this.queryLeaderboardChain(query);
-      console.log("Login/register operation completed");
       return { success: true };
     } catch (error) {
       console.error("Failed to login/register:", error);
@@ -473,7 +477,6 @@ export class LineraClient {
 
     try {
       const response = await this.counter.query(JSON.stringify(queryObject));
-      console.log("Practice score submitted successfully");
       return response;
     } catch (error) {
       console.error("Failed to submit practice score:", error);
@@ -570,7 +573,6 @@ export class LineraClient {
 
     try {
       const response = await this.queryLeaderboardChain(queryObject.query);
-      console.log("Tournament created successfully");
       return response;
     } catch (error) {
       console.error("Failed to create tournament:", error);
@@ -609,7 +611,7 @@ export class LineraClient {
         tournaments.map(async (tournament) => {
           let playerCount = 0;
           let maxScore = 0;
-          
+
           try {
             const countQuery = `
               query {
@@ -619,7 +621,10 @@ export class LineraClient {
             const countData = await this.queryLeaderboardChain(countQuery);
             playerCount = countData.tournamentParticipantCount || 0;
           } catch (error) {
-            console.warn(`Failed to get participant count for tournament ${tournament.id}:`, error);
+            console.warn(
+              `Failed to get participant count for tournament ${tournament.id}:`,
+              error
+            );
           }
 
           // Fetch tournament leaderboard to get max score
@@ -631,15 +636,20 @@ export class LineraClient {
                 }
               }
             `;
-            const leaderboardData = await this.queryLeaderboardChain(leaderboardQuery);
+            const leaderboardData = await this.queryLeaderboardChain(
+              leaderboardQuery
+            );
             const leaderboard = leaderboardData.tournamentLeaderboard || [];
-            
+
             // Find the maximum score from the leaderboard
             if (leaderboard.length > 0) {
-              maxScore = Math.max(...leaderboard.map(entry => entry.score));
+              maxScore = Math.max(...leaderboard.map((entry) => entry.score));
             }
           } catch (error) {
-            console.warn(`Failed to get max score for tournament ${tournament.id}:`, error);
+            console.warn(
+              `Failed to get max score for tournament ${tournament.id}:`,
+              error
+            );
           }
 
           return {
@@ -676,7 +686,6 @@ export class LineraClient {
 
     try {
       const data = await this.queryLeaderboardChain(query);
-      console.log("Tournament joined successfully");
       return data;
     } catch (error) {
       console.error("Failed to join tournament:", error);
@@ -710,7 +719,6 @@ export class LineraClient {
 
     try {
       const response = await this.counter.query(JSON.stringify(queryObject));
-      console.log("Tournament score submitted successfully");
       return response;
     } catch (error) {
       console.error("Failed to submit tournament score:", error);
@@ -741,7 +749,6 @@ export class LineraClient {
 
     try {
       const response = await this.queryLeaderboardChain(queryObject.query);
-      console.log("Tournament deleted successfully");
       return response;
     } catch (error) {
       console.error("Failed to delete tournament:", error);
@@ -838,7 +845,7 @@ export class LineraClient {
         tournaments.map(async (tournament) => {
           let playerCount = 0;
           let maxScore = 0;
-          
+
           try {
             const countQuery = `
               query {
@@ -848,7 +855,10 @@ export class LineraClient {
             const countData = await this.queryLeaderboardChain(countQuery);
             playerCount = countData.tournamentParticipantCount || 0;
           } catch (error) {
-            console.warn(`Failed to get participant count for tournament ${tournament.id}:`, error);
+            console.warn(
+              `Failed to get participant count for tournament ${tournament.id}:`,
+              error
+            );
           }
 
           // Fetch tournament leaderboard to get max score
@@ -860,15 +870,20 @@ export class LineraClient {
                 }
               }
             `;
-            const leaderboardData = await this.queryLeaderboardChain(leaderboardQuery);
+            const leaderboardData = await this.queryLeaderboardChain(
+              leaderboardQuery
+            );
             const leaderboard = leaderboardData.tournamentLeaderboard || [];
-            
+
             // Find the maximum score from the leaderboard
             if (leaderboard.length > 0) {
-              maxScore = Math.max(...leaderboard.map(entry => entry.score));
+              maxScore = Math.max(...leaderboard.map((entry) => entry.score));
             }
           } catch (error) {
-            console.warn(`Failed to get max score for tournament ${tournament.id}:`, error);
+            console.warn(
+              `Failed to get max score for tournament ${tournament.id}:`,
+              error
+            );
           }
 
           return {
@@ -912,7 +927,6 @@ export class LineraClient {
 
     try {
       const response = await this.queryLeaderboardChain(queryObject.query);
-      console.log(`Tournament ${pin ? "pinned" : "unpinned"} successfully`);
       return response;
     } catch (error) {
       console.error("Failed to toggle tournament pin:", error);
@@ -943,7 +957,6 @@ export class LineraClient {
 
     try {
       const response = await this.queryLeaderboardChain(queryObject.query);
-      console.log("Tournament started successfully");
       return response;
     } catch (error) {
       console.error("Failed to start tournament:", error);
@@ -976,7 +989,6 @@ export class LineraClient {
 
     try {
       const response = await this.queryLeaderboardChain(queryObject.query);
-      console.log("Tournament ended successfully");
       return response;
     } catch (error) {
       console.error("Failed to end tournament:", error);
@@ -1014,7 +1026,6 @@ export class LineraClient {
 
     try {
       const response = await this.queryLeaderboardChain(queryObject.query);
-      console.log("Tournament updated successfully");
       return response;
     } catch (error) {
       console.error("Failed to update tournament:", error);

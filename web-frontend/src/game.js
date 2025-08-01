@@ -11,4 +11,3 @@ export { GameEngine } from "./game/GameEngine.js";
 export { GameState } from "./game/GameState.js";
 export { GameUI } from "./ui/GameUI.js";
 
-console.log("Flappy Game - Refactored version loaded");

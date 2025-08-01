@@ -246,9 +246,6 @@ export class GameState {
 
     // For future enhancement, could also track all tournament scores
     // similar to practice scores if needed
-    console.log(
-      `Tournament score added: ${score}, best: ${this.tournamentBest}`
-    );
   }
 
   getPracticeGamesPlayed() {
@@ -399,7 +396,6 @@ export class GameState {
       // Reload tournaments from blockchain to get updated data
       await this.loadTournaments();
 
-      console.log(`Successfully joined tournament: ${tournamentId}`);
       return result;
     } catch (error) {
       console.error("Failed to join tournament on blockchain:", error);
@@ -410,7 +406,6 @@ export class GameState {
         (error.message.includes("already joined") ||
           error.message.includes("User already joined this tournament"))
       ) {
-        console.log("User already joined this tournament - proceeding anyway");
         return { success: true, alreadyJoined: true };
       }
 
@@ -449,9 +444,6 @@ export class GameState {
       // Reload tournaments from blockchain to get updated data
       await this.loadTournaments();
 
-      console.log(
-        `Tournament score submitted: ${score} for tournament ${tournamentId}`
-      );
       return result;
     } catch (error) {
       console.error("Failed to submit tournament score to blockchain:", error);

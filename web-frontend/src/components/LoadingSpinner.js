@@ -5,7 +5,7 @@
 export class LoadingSpinner {
   constructor() {
     this.element = null;
-    this.currentMessage = '';
+    this.currentMessage = "";
     this.isVisible = false;
   }
 
@@ -15,9 +15,9 @@ export class LoadingSpinner {
    * @param {string} context - Loading context (blockchain, tournament, score, etc.)
    * @returns {HTMLElement} The loading spinner element
    */
-  create(message = 'Loading...', context = 'default') {
-    const loadingSpinner = document.createElement('div');
-    loadingSpinner.className = 'linera-loading-overlay';
+  create(message = "Loading...", context = "default") {
+    const loadingSpinner = document.createElement("div");
+    loadingSpinner.className = "linera-loading-overlay";
     loadingSpinner.innerHTML = `
       <div class="linera-loading-container">
         <div class="linera-logo-spinner ${context}">
@@ -498,12 +498,17 @@ export class LoadingSpinner {
               <span class="dot"></span>
               <span class="dot"></span>
               <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
             </div>
           </div>
         </div>
       </div>
     `;
-    
+
     this.element = loadingSpinner;
     this.currentMessage = message;
     return loadingSpinner;
@@ -516,13 +521,13 @@ export class LoadingSpinner {
    */
   getContextTitle(context) {
     const titles = {
-      blockchain: 'LINERA FLAPPY',
-      tournament: 'LINERA FLAPPY',
-      score: 'LINERA FLAPPY',
-      leaderboard: 'LINERA FLAPPY',
-      auth: 'LINERA FLAPPY',
-      wallet: 'LINERA FLAPPY',
-      default: 'LINERA FLAPPY'
+      blockchain: "LINERA FLAPPY",
+      tournament: "LINERA FLAPPY",
+      score: "LINERA FLAPPY",
+      leaderboard: "LINERA FLAPPY",
+      auth: "LINERA FLAPPY",
+      wallet: "LINERA FLAPPY",
+      default: "LINERA FLAPPY",
     };
     return titles[context] || titles.default;
   }
@@ -533,20 +538,20 @@ export class LoadingSpinner {
    * @param {string} context - Loading context
    * @param {HTMLElement} container - Container to append to (defaults to body)
    */
-  show(message = 'Loading...', context = 'default', container = document.body) {
+  show(message = "Loading...", context = "default", container = document.body) {
     if (this.isVisible) {
       this.updateMessage(message);
       return;
     }
 
     const spinner = this.create(message, context);
-    
+
     container.appendChild(spinner);
     this.isVisible = true;
 
     // Trigger animation
     requestAnimationFrame(() => {
-      spinner.classList.add('visible');
+      spinner.classList.add("visible");
     });
   }
 
@@ -556,8 +561,8 @@ export class LoadingSpinner {
   hide() {
     if (!this.isVisible || !this.element) return;
 
-    this.element.classList.add('hiding');
-    
+    this.element.classList.add("hiding");
+
     setTimeout(() => {
       if (this.element && this.element.parentNode) {
         this.element.parentNode.removeChild(this.element);
@@ -573,8 +578,8 @@ export class LoadingSpinner {
    */
   updateMessage(message) {
     if (!this.element) return;
-    
-    const messageEl = this.element.querySelector('#loading-message');
+
+    const messageEl = this.element.querySelector("#loading-message");
     if (messageEl) {
       messageEl.textContent = message;
       this.currentMessage = message;
@@ -590,7 +595,7 @@ export class LoadingSpinner {
     for (let i = 0; i < messages.length; i++) {
       this.updateMessage(messages[i]);
       if (i < messages.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, interval));
+        await new Promise((resolve) => setTimeout(resolve, interval));
       }
     }
   }
