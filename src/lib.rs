@@ -68,6 +68,10 @@ pub enum Operation {
         hash: String,
         requester_chain_id: ChainId, // Track which chain made the request
     },
+    DeleteUser {
+        caller_chain_id: ChainId,
+        username: String,
+    },
     // Practice mode operations
     SubmitPracticeScore {
         username: String,
@@ -728,5 +732,25 @@ mod tests {
         assert_eq!(tournament.status, TournamentStatus::Registration);
         assert!(tournament.start_time.is_none());
         assert!(tournament.end_time.is_none());
+    }
+
+    #[test]
+    fn test_delete_user_operation_serialization() {
+        let chain_id = test_chain_id();
+        let op = Operation::DeleteUser {
+            caller_chain_id: chain_id,
+            username: "testuser".to_string(),
+        };
+        
+        let serialized = serde_json::to_string(&op).unwrap();
+        let deserialized: Operation = serde_json::from_str(&serialized).unwrap();
+        
+        match deserialized {
+            Operation::DeleteUser { caller_chain_id, username } => {
+                assert_eq!(caller_chain_id, chain_id);
+                assert_eq!(username, "testuser");
+            },
+            _ => panic!("Wrong operation type"),
+        }
     }
 }
