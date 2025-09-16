@@ -1,4 +1,5 @@
 import * as linera from "@linera/client";
+import * as linera_signer from "@linera/signer";
 
 export class LineraClient {
   static instance = null;
@@ -83,26 +84,22 @@ export class LineraClient {
       }
 
       // Create faucet
-      this.faucet = new linera.Faucet(this.APP_URL);
-
-      // Create wallet - this will always be fresh in development mode
+      this.faucet = await new linera.Faucet(this.APP_URL);
+      console.log("faucet", this.APP_URL);
+      const signer = await new linera_signer.MetaMask();
+      console.log("signer", signer);
       this.wallet = await this.faucet.createWallet();
+      console.log("wallet", this.wallet);
+      const owner = await signer.address();
+      console.log("owner", owner);
+      this.chainId = await this.faucet.claimChain(this.wallet, owner);
+      console.log("chainId", this.chainId);
+      this.client = await new linera.Client(this.wallet, signer);
+      console.log("client", this.client);
 
-      // Create client with the wallet
-      this.client = await new linera.Client(this.wallet);
-
-      // Validate client instance
-      if (!this.client || typeof this.client !== "object") {
-        throw new Error("Failed to create valid Client instance");
-      }
-
-      // Claim chain from faucet - this will create a new chain
-      this.chainId = await this.faucet.claimChain(this.client);
-
-      // Get the application frontend
       this.counter = await this.client.frontend().application(this.APP_ID);
+      console.log("counter", this.counter);
 
-      // Save chainId for display purposes only
       this.saveChainId();
 
       // Mark as initialized

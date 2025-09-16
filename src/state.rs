@@ -2,8 +2,8 @@ use flappy::{LeaderboardEntry, User, LoginResult, PracticeEntry, Tournament, Tou
 use linera_sdk::linera_base_types::ChainId;
 use linera_sdk::views::{linera_views, MapView, RegisterView, RootView, ViewStorageContext};
 
-#[derive(RootView, async_graphql::SimpleObject)]
-#[view(context = "ViewStorageContext")]
+#[derive(RootView)]
+#[view(context = ViewStorageContext)]
 pub struct FlappyState {
     // Tournament leaderboard fields (keep for Feature 3)
     pub player_name: RegisterView<String>,
