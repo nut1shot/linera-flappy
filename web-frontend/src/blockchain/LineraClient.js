@@ -1,5 +1,6 @@
 import * as linera from "@linera/client";
-import * as linera_signer from "@linera/signer";
+import { PrivateKey } from "@linera/signer";
+import { ethers } from "ethers";
 
 export class LineraClient {
   static instance = null;
@@ -28,6 +29,7 @@ export class LineraClient {
     this.client = null;
     this.faucet = null;
     this.chainId = "";
+    this.mnemonic = "";
     this.leaderboardClient = null;
     this.isInitialized = false;
 
@@ -86,7 +88,9 @@ export class LineraClient {
       // Create faucet
       this.faucet = await new linera.Faucet(this.APP_URL);
       console.log("faucet", this.APP_URL);
-      const signer = await new linera_signer.MetaMask();
+      this.mnemonic =
+        this.getMnemonic() || ethers.Wallet.createRandom().mnemonic.phrase;
+      const signer = PrivateKey.fromMnemonic(this.mnemonic);
       console.log("signer", signer);
       this.wallet = await this.faucet.createWallet();
       console.log("wallet", this.wallet);
@@ -164,7 +168,7 @@ export class LineraClient {
     try {
       // Save chainId for display purposes
       localStorage.setItem(this.STORAGE_KEYS.CHAIN_ID, this.chainId);
-
+      localStorage.setItem("MNEMONIC", this.mnemonic);
       // Save wallet data for manual persistence since Linera's built-in persistence
       // doesn't work in development faucet mode
       if (this.wallet) {
@@ -302,6 +306,12 @@ export class LineraClient {
       console.error("Failed to submit score:", error);
       throw error;
     }
+  }
+
+  getMnemonic() {
+    const res = localStorage.getItem("MNEMONIC");
+    console.log("getMnemonic", res);
+    return res;
   }
 
   getChainId() {
