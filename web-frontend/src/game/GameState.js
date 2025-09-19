@@ -442,7 +442,7 @@ export class GameState {
       );
 
       // Reload tournaments from blockchain to get updated data
-      await this.loadTournaments();
+      // await this.loadTournaments();
 
       return result;
     } catch (error) {

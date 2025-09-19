@@ -28,7 +28,6 @@ class FlappyGame {
   }
 
   initialize() {
-
     // Initialize UI
     this.gameUI.initialize();
 
@@ -319,7 +318,6 @@ Please check:
 
       // Store for backward compatibility
       window.counter = result.counter;
-
     } catch (error) {
       console.error("Failed to initialize Linera client:", error);
       throw error;
@@ -455,6 +453,7 @@ Please check:
   }
 
   async handleGameOver(score, best, isNewHighScore) {
+    console.log("handleGameOver");
     // Submit tournament score on ALL game overs if in tournament mode
     const activeTournament = this.gameState.getActiveTournament();
     const gameMode = this.gameState.getGameMode();
@@ -467,6 +466,7 @@ Please check:
       // Only submit if player is actually participating in the tournament
       if (this.gameState.isPlayerInTournament(activeTournament.id)) {
         try {
+          console.log("isPlayerInTournament");
           await this.gameState.submitTournamentScore(
             activeTournament.id,
             score
@@ -496,7 +496,6 @@ Please check:
 
     this.gameUI.updatePlayerBest(currentBest);
     this.gameUI.showRestartButton();
-
   }
 
   async handleHighScore(score) {
@@ -574,14 +573,17 @@ Please check:
 
   async setupBlockchainGame() {
     // Show loading spinner for blockchain game setup
-    const spinner = Loading.custom("Setting up blockchain game...", "blockchain");
-    
+    const spinner = Loading.custom(
+      "Setting up blockchain game...",
+      "blockchain"
+    );
+
     try {
       const playerName = this.gameState.getPlayerName();
 
       if (!playerName) {
-          spinner.updateMessage("Player name not set - skipping setup");
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        spinner.updateMessage("Player name not set - skipping setup");
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         return;
       }
 
@@ -591,18 +593,20 @@ Please check:
       await this.lineraClient.setupGame(playerName);
 
       spinner.updateMessage("Configuring game state...");
-      
+
       // Mark game as configured
       this.gameState.setGameConfigured(true);
 
       spinner.updateMessage("Blockchain game setup complete!");
-      
+
       // Show success message briefly
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 800));
     } catch (error) {
       console.error("Failed to setup blockchain game:", error);
-      spinner.updateMessage("Setup failed - continuing with limited functionality");
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      spinner.updateMessage(
+        "Setup failed - continuing with limited functionality"
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Don't throw error - allow user to continue with limited functionality
     } finally {
       // Hide loading spinner
@@ -1058,7 +1062,6 @@ Please check:
         this.gameUI.updatePlayerRank(0);
         this.gameEngine.setBest(0);
       }
-
     } catch (error) {
       console.error("Failed to load practice leaderboard:", error);
       // Set empty leaderboard on error
@@ -1069,6 +1072,7 @@ Please check:
   }
 
   async loadTournamentLeaderboard(tournamentId) {
+    console.log("loadTournamentLeaderboard");
     try {
       // Get tournament leaderboard from blockchain
       const tournamentLeaderboard =
@@ -1104,7 +1108,6 @@ Please check:
         this.gameUI.updatePlayerRank(0);
         this.gameEngine.setBest(0);
       }
-
     } catch (error) {
       console.error("Failed to load tournament leaderboard:", error);
       // Set empty leaderboard on error
@@ -1125,7 +1128,6 @@ Please check:
 
       // Update UI with practice best score
       this.gameUI.updatePlayerBest(practiceData.myPracticeBest);
-
     } catch (error) {
       console.error("Failed to load personal practice statistics:", error);
       // Set empty statistics on error
@@ -1181,7 +1183,6 @@ Please check:
         this.gameState.setMyRank(playerRank);
         this.gameEngine.setMyRank(playerRank);
       }
-
     } catch (error) {
       console.error("Failed to load legacy leaderboard:", error);
     }
@@ -1283,6 +1284,7 @@ Please check:
 
   // Blockchain integration
   async submitScoreToLeaderboard(score) {
+    console.log("submitScoreToLeaderboard");
     try {
       if (!this.gameState.getPlayerName()) {
         return;
@@ -1296,11 +1298,11 @@ Please check:
       } else if (gameMode === "tournament") {
         // Handle tournament mode score submission
         await this.submitTournamentScore(score);
+        this.refreshLeaderboard();
       } else {
         // Fallback to legacy leaderboard system
         await this.submitLegacyScore(score);
       }
-
     } catch (error) {
       console.error("Failed to submit score:", error);
     }
