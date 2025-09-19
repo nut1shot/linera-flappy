@@ -90,8 +90,7 @@ export class LineraClient {
       console.log("faucet", this.APP_URL);
       // this.mnemonic =
       //   this.getMnemonic() || ethers.Wallet.createRandom().mnemonic.phrase;
-      this.mnemonic =
-        this.getMnemonic() || ethers.Wallet.createRandom().mnemonic.phrase;
+      this.mnemonic = ethers.Wallet.createRandom().mnemonic.phrase;
       const signer = PrivateKey.fromMnemonic(this.mnemonic);
       console.log("signer", signer);
       this.wallet = await this.faucet.createWallet();
