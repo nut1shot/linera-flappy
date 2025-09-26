@@ -244,7 +244,6 @@ export class GameUI {
         targetScreen.style.display = "flex";
       }
     }
-
   }
 
   // Loading UI
@@ -369,7 +368,6 @@ export class GameUI {
   // Tournament UI
   renderTournamentList(tournaments) {
     if (!this.elements.tournamentList) return;
-    
 
     if (tournaments.length === 0) {
       this.elements.tournamentList.innerHTML = `
@@ -417,15 +415,21 @@ export class GameUI {
             isAdmin
               ? `
             <div class="tournament-admin-controls">
-              <button data-tournament-id="${tournament.id}" class="admin-icon-btn pin-icon-btn ${
+              <button data-tournament-id="${
+                tournament.id
+              }" class="admin-icon-btn pin-icon-btn ${
                   tournament.pinned ? "pinned" : ""
                 }" data-action="pin">
                 ${tournament.pinned ? "📍" : "📌"}
               </button>
-              <button data-tournament-id="${tournament.id}" class="admin-icon-btn edit-icon-btn" data-action="edit">
+              <button data-tournament-id="${
+                tournament.id
+              }" class="admin-icon-btn edit-icon-btn" data-action="edit">
                 ✏️
               </button>
-              <button data-tournament-id="${tournament.id}" class="admin-icon-btn delete-icon-btn" data-action="delete">
+              <button data-tournament-id="${
+                tournament.id
+              }" class="admin-icon-btn delete-icon-btn" data-action="delete">
                 🗑️
               </button>
             </div>
@@ -447,13 +451,22 @@ export class GameUI {
               <span class="value">${tournament.maxScore}</span>
             </div>
             <div class="info-item">
+              <span class="label">Starts:</span>
+              <span class="value" style="font-size: 7px;">${this.formatTournamentDate(
+                tournament.startTime
+              )}</span>
+            </div>
+            <div class="info-item">
               <span class="label">Ends:</span>
-              <span class="value">${this.formatTournamentDate(tournament.endTime)}</span>
+              <span class="value" style="font-size: 7px;">${this.formatTournamentDate(
+                tournament.endTime
+              )}</span>
             </div>
           </div>
           <div class="tournament-card-actions">
             ${
-              tournament.status === "REGISTRATION" || tournament.status === "ACTIVE"
+              tournament.status === "REGISTRATION" ||
+              tournament.status === "ACTIVE"
                 ? `
               <button data-tournament-id="${tournament.id}" class="tournament-action-btn join-btn" data-action="join">
                 JOIN TOURNAMENT
@@ -461,7 +474,9 @@ export class GameUI {
             `
                 : ""
             }
-            <button data-tournament-id="${tournament.id}" class="tournament-action-btn view-btn" data-action="view">
+            <button data-tournament-id="${
+              tournament.id
+            }" class="tournament-action-btn view-btn" data-action="view">
               VIEW LEADERBOARD
             </button>
           </div>
@@ -469,38 +484,38 @@ export class GameUI {
       `;
       })
       .join("");
-      
+
     // Add event listeners for tournament action buttons
     this.setupTournamentActionListeners();
   }
 
   setupTournamentActionListeners() {
     // Admin action buttons
-    document.querySelectorAll('.admin-icon-btn').forEach(button => {
-      button.addEventListener('click', (e) => {
-        const tournamentId = e.target.getAttribute('data-tournament-id');
-        const action = e.target.getAttribute('data-action');
-        
-        if (action === 'pin') {
-          this.emit('toggleTournamentPin', tournamentId);
-        } else if (action === 'edit') {
-          this.emit('editTournament', tournamentId);
-        } else if (action === 'delete') {
-          this.emit('deleteTournament', tournamentId);
+    document.querySelectorAll(".admin-icon-btn").forEach((button) => {
+      button.addEventListener("click", (e) => {
+        const tournamentId = e.target.getAttribute("data-tournament-id");
+        const action = e.target.getAttribute("data-action");
+
+        if (action === "pin") {
+          this.emit("toggleTournamentPin", tournamentId);
+        } else if (action === "edit") {
+          this.emit("editTournament", tournamentId);
+        } else if (action === "delete") {
+          this.emit("deleteTournament", tournamentId);
         }
       });
     });
 
     // User action buttons
-    document.querySelectorAll('.tournament-action-btn').forEach(button => {
-      button.addEventListener('click', (e) => {
-        const tournamentId = e.target.getAttribute('data-tournament-id');
-        const action = e.target.getAttribute('data-action');
-        
-        if (action === 'join') {
-          this.emit('joinTournament', tournamentId);
-        } else if (action === 'view') {
-          this.emit('viewTournamentLeaderboard', tournamentId);
+    document.querySelectorAll(".tournament-action-btn").forEach((button) => {
+      button.addEventListener("click", (e) => {
+        const tournamentId = e.target.getAttribute("data-tournament-id");
+        const action = e.target.getAttribute("data-action");
+
+        if (action === "join") {
+          this.emit("joinTournament", tournamentId);
+        } else if (action === "view") {
+          this.emit("viewTournamentLeaderboard", tournamentId);
         }
       });
     });
@@ -545,7 +560,6 @@ export class GameUI {
   updateUIBasedOnRole(role) {
     this.userRole = role;
     const isAdmin = role === "ADMIN";
-
 
     // Update admin panel if it exists
     if (this.elements.adminPanel) {
@@ -719,24 +733,29 @@ export class GameUI {
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     const isMobile = viewportWidth <= UI_CONFIG.MOBILE_BREAKPOINT;
-    
-    const scaleConfig = isMobile ? 
-      GAME_CONFIG.CANVAS.MOBILE_SCALE : 
-      GAME_CONFIG.CANVAS.DESKTOP_SCALE;
+
+    const scaleConfig = isMobile
+      ? GAME_CONFIG.CANVAS.MOBILE_SCALE
+      : GAME_CONFIG.CANVAS.DESKTOP_SCALE;
 
     // Calculate maximum allowed dimensions with enhanced scaling
-    const maxWidthByViewport = viewportWidth * (scaleConfig.MAX_VIEWPORT_WIDTH_PERCENT / 100);
+    const maxWidthByViewport =
+      viewportWidth * (scaleConfig.MAX_VIEWPORT_WIDTH_PERCENT / 100);
     const maxWidthByScale = gameWidth * scaleConfig.MAX_SCALE_MULTIPLIER;
-    const maxHeightByViewport = viewportHeight * (scaleConfig.MAX_VIEWPORT_HEIGHT_PERCENT / 100);
-    
+    const maxHeightByViewport =
+      viewportHeight * (scaleConfig.MAX_VIEWPORT_HEIGHT_PERCENT / 100);
+
     const maxWidth = Math.min(maxWidthByViewport, maxWidthByScale);
     const maxHeight = maxHeightByViewport;
 
     // Start with width-based sizing
-    const initialDisplayWidth = Math.min(maxWidth, gameWidth * scaleConfig.MAX_SCALE_MULTIPLIER);
+    const initialDisplayWidth = Math.min(
+      maxWidth,
+      gameWidth * scaleConfig.MAX_SCALE_MULTIPLIER
+    );
     let displayWidth = initialDisplayWidth;
     let displayHeight = displayWidth * aspectRatio;
-    
+
     // If height exceeds available space, scale down based on height
     if (displayHeight > maxHeight) {
       displayHeight = maxHeight;
@@ -744,13 +763,15 @@ export class GameUI {
     }
 
     // Ensure minimum readable size - use fixed minimums to avoid viewport scaling issues
-    const minWidthFallback = isMobile ? Math.min(viewportWidth * 0.6, 400) : 350; // Fixed 350px minimum for desktop
+    const minWidthFallback = isMobile
+      ? Math.min(viewportWidth * 0.6, 400)
+      : 350; // Fixed 350px minimum for desktop
     const minWidth = Math.max(scaleConfig.MIN_WIDTH, minWidthFallback);
-    
+
     if (displayWidth < minWidth) {
       displayWidth = minWidth;
       displayHeight = displayWidth * aspectRatio;
-      
+
       // Final check: if still too tall, compromise
       if (displayHeight > maxHeight) {
         displayHeight = maxHeight;
@@ -767,12 +788,10 @@ export class GameUI {
     canvas.style.height = Math.round(displayHeight) + "px";
 
     // Add responsive canvas class for CSS targeting
-    canvas.classList.toggle('mobile-canvas', isMobile);
+    canvas.classList.toggle("mobile-canvas", isMobile);
 
     // Don't scale the context - let CSS handle the scaling
     // This preserves game coordinate system
-
-
 
     // Notify game engine of display scale for input handling
     this.emit("canvasScaleChanged", {
@@ -806,17 +825,17 @@ export class GameUI {
 
   // Helper method to format tournament dates
   formatTournamentDate(timestamp) {
-    if (!timestamp) return 'Not set';
-    
+    if (!timestamp) return "Not set";
+
     try {
       // Handle different timestamp formats
       let date;
-      if (typeof timestamp === 'string') {
+      if (typeof timestamp === "string") {
         // Try parsing as ISO string first
         date = new Date(timestamp);
-      } else if (typeof timestamp === 'number') {
+      } else if (typeof timestamp === "number") {
         // Handle different timestamp formats
-        if (timestamp > 1000000000 && timestamp < 10000000000) { 
+        if (timestamp > 1000000000 && timestamp < 10000000000) {
           // This is a Unix timestamp in seconds (between 2001 and 2286)
           date = new Date(timestamp * 1000);
         } else if (timestamp > 1000000000000 && timestamp < 10000000000000) {
@@ -830,11 +849,11 @@ export class GameUI {
           const asSeconds = new Date(timestamp * 1000);
           const asMilliseconds = new Date(timestamp);
           const asMicroseconds = new Date(timestamp / 1000);
-          
+
           // Check which one gives a reasonable date (between 1970 and 2100)
-          const minDate = new Date('1970-01-01');
-          const maxDate = new Date('2100-01-01');
-          
+          const minDate = new Date("1970-01-01");
+          const maxDate = new Date("2100-01-01");
+
           if (asMicroseconds >= minDate && asMicroseconds <= maxDate) {
             date = asMicroseconds;
           } else if (asSeconds >= minDate && asSeconds <= maxDate) {
@@ -843,22 +862,22 @@ export class GameUI {
             date = asMilliseconds;
           } else {
             // Neither interpretation works, return the raw number with error
-            console.error('Cannot interpret timestamp:', timestamp);
+            console.error("Cannot interpret timestamp:", timestamp);
             return `Invalid (${timestamp})`;
           }
         }
       } else {
-        return 'Invalid date';
+        return "Invalid date";
       }
-      
+
       if (isNaN(date.getTime())) {
-        return 'Invalid date';
+        return "Invalid date";
       }
-      
-      return date.toLocaleDateString();
+
+      return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
     } catch (error) {
-      console.error('Error formatting date:', error, 'timestamp:', timestamp);
-      return 'Invalid date';
+      console.error("Error formatting date:", error, "timestamp:", timestamp);
+      return "Invalid date";
     }
   }
 }

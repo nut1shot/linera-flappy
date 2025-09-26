@@ -1295,6 +1295,7 @@ Please check:
       if (gameMode === "practice") {
         // Handle practice mode score submission
         await this.submitPracticeScore(score);
+        this.refreshLeaderboard();
       } else if (gameMode === "tournament") {
         // Handle tournament mode score submission
         await this.submitTournamentScore(score);
