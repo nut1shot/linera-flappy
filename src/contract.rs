@@ -220,7 +220,9 @@ impl Contract for FlappyContract {
                             .expect("Failed to get login result chain IDs");
 
                         for chain_id in chain_ids {
-                            if let Ok(Some(login_result)) = self.state.login_results.get(&chain_id).await {
+                            if let Ok(Some(login_result)) =
+                                self.state.login_results.get(&chain_id).await
+                            {
                                 if let Some(result_user) = &login_result.user {
                                     if result_user.username == username {
                                         self.state
@@ -605,10 +607,6 @@ impl Contract for FlappyContract {
                         .my_tournament_scores
                         .insert(&tournament_id, my_scores)
                         .expect("Failed to update personal tournament scores");
-                } else {
-                    // Process directly on leaderboard chain
-                    self.process_tournament_score(tournament_id, username, score)
-                        .await;
                 }
             }
         }
@@ -665,7 +663,7 @@ impl Contract for FlappyContract {
                 tournament_id,
                 username,
                 score,
-                player_chain_id: _,
+                player_chain_id,
             } => {
                 // Only process on leaderboard chain
                 if !*self.state.is_leaderboard_chain.get() {
@@ -673,7 +671,7 @@ impl Contract for FlappyContract {
                 }
 
                 // Process the tournament score
-                self.process_tournament_score(tournament_id, username, score)
+                self.process_tournament_score(tournament_id, username, score, player_chain_id)
                     .await;
             }
 
@@ -751,6 +749,7 @@ impl FlappyContract {
         tournament_id: String,
         username: String,
         score: u64,
+        player_chain_id: ChainId,
     ) {
         // Get tournament and validate it's active
         let tournament = match self.state.tournaments.get(&tournament_id).await {
@@ -767,8 +766,13 @@ impl FlappyContract {
         }
 
         // Update live tournament leaderboard directly
-        self.update_tournament_leaderboard_with_score(&tournament_id, username, score)
-            .await;
+        self.update_tournament_leaderboard_with_score(
+            &tournament_id,
+            username,
+            score,
+            player_chain_id,
+        )
+        .await;
     }
 
     async fn update_tournament_leaderboard_with_score(
@@ -776,6 +780,7 @@ impl FlappyContract {
         tournament_id: &str,
         username: String,
         new_score: u64,
+        player_chain_id: ChainId,
     ) {
         // Get current leaderboard
         let mut leaderboard = match self.state.tournament_leaderboards.get(tournament_id).await {
@@ -793,6 +798,7 @@ impl FlappyContract {
             if new_score > entry.score {
                 entry.score = new_score;
                 entry.timestamp = self.runtime.system_time().micros();
+                entry.chain_id = player_chain_id;
             }
         } else {
             // Add new entry for this user
@@ -800,7 +806,7 @@ impl FlappyContract {
                 username,
                 score: new_score,
                 rank: 0, // Will be set after sorting
-                chain_id: self.runtime.chain_id(),
+                chain_id: player_chain_id,
                 timestamp: self.runtime.system_time().micros(),
             });
         }
