@@ -12,11 +12,11 @@
     "ci": "pnpm install --frozen-lockfile && pnpm build"
   },
   "dependencies": {
-    "@linera/client": "0.15.3",
-    "@linera/signer": "0.15.3",
-    "ethers": "^6.14.3"
+    "@linera/client": "0.15.4",
+    "@linera/signer": "0.15.4",
+    "ethers": "^6.15.0"
   },
   "devDependencies": {
-    "vite": "^5.4.10"
+    "vite": "^5.4.20"
   }
 }
