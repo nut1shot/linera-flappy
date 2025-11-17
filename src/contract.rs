@@ -9,8 +9,9 @@ use linera_sdk::{
 };
 
 use flappy::{
-    ApplicationParameters, FlappyMessage, InstantiationArgument, LoginResult, Operation,
-    PracticeEntry, Tournament, TournamentResult, TournamentStatus, User, UserRole,
+    ApplicationParameters, FlappyMessage, GameSession, InstantiationArgument, LoginResult,
+    Operation, PracticeEntry, ProofHistoryEntry, ProofStatus, Tournament, TournamentResult,
+    TournamentStatus, User, UserRole,
 };
 
 use self::state::FlappyState;
@@ -57,6 +58,9 @@ impl Contract for FlappyContract {
         self.state.pinned_tournaments.set(Vec::new());
         self.state.tournament_counter.set(0);
         self.state.my_tournaments.set(Vec::new());
+
+        // Initialize anti-cheat fields
+        self.state.session_counter.set(0);
 
         // Create admin user if provided (only for leaderboard chain setup)
         if let (Some(admin_username), Some(admin_hash)) = (args.admin_username, args.admin_hash) {
@@ -609,6 +613,92 @@ impl Contract for FlappyContract {
                         .expect("Failed to update personal tournament scores");
                 }
             }
+
+            // Anti-cheat operations
+            Operation::StartGameSession { session_id, username, tournament_id } => {
+                // Use session_id provided by frontend (already unique with timestamp)
+                let seed = self.runtime.system_time().micros();
+
+                let session = GameSession {
+                    session_id: session_id.clone(),
+                    username: username.clone(),
+                    tournament_id: tournament_id.clone(),
+                    seed,
+                    started_at: self.runtime.system_time().micros(),
+                    chain_id: self.runtime.chain_id(),
+                };
+
+                // Store session locally
+                self.state
+                    .game_sessions
+                    .insert(&session_id, session.clone())
+                    .expect("Failed to create game session");
+
+                // Register on leaderboard chain
+                if let Some(leaderboard_id) = self.state.leaderboard_chain_id.get() {
+                    let message = FlappyMessage::RegisterGameSession { session };
+                    self.runtime
+                        .prepare_message(message)
+                        .send_to(*leaderboard_id);
+                }
+            }
+
+            Operation::SubmitVerifiedScore {
+                session_id,
+                username,
+                tournament_id,
+                proof,
+            } => {
+                // LAYER 1: Pre-validate for UX (not security!)
+                if let Err(error) = flappy::validate_game_proof(&proof) {
+                    panic!("Local validation failed: {}", error);
+                }
+
+                // Get local session data
+                let session = match self.state.game_sessions.get(&session_id).await {
+                    Ok(Some(s)) => s,
+                    _ => {
+                        panic!("Session not found: {}", session_id);
+                    }
+                };
+
+                // Store in proof history with "pending" status
+                let proof_entry = ProofHistoryEntry {
+                    proof: proof.clone(),
+                    session_id: session_id.clone(),
+                    tournament_id: tournament_id.clone(),
+                    submitted_at: self.runtime.system_time().micros(),
+                    status: ProofStatus::Pending,
+                    confirmed_at: None,
+                    rejection_reason: None,
+                    leaderboard_rank: None,
+                };
+
+                self.state
+                    .proof_history
+                    .insert(&session_id, proof_entry)
+                    .expect("Failed to store proof");
+
+                // Forward to leaderboard for REAL validation
+                // Include session data to avoid race condition
+                if let Some(leaderboard_id) = self.state.leaderboard_chain_id.get() {
+                    let message = FlappyMessage::SubmitVerifiedScore {
+                        session_id: session_id.clone(),
+                        username,
+                        tournament_id,
+                        proof,
+                        player_chain_id: self.runtime.chain_id(),
+                        session: session.clone(), // Send session data with proof
+                    };
+
+                    self.runtime
+                        .prepare_message(message)
+                        .send_to(*leaderboard_id);
+                }
+
+                // Clean up local session
+                self.state.game_sessions.remove(&session_id).ok();
+            }
         }
     }
 
@@ -706,6 +796,79 @@ impl Contract for FlappyContract {
                     self.runtime
                         .prepare_message(response)
                         .send_to(requester_chain_id);
+                }
+            }
+
+            // Anti-cheat messages
+            FlappyMessage::RegisterGameSession { session } => {
+                // Only process on leaderboard chain
+                if !*self.state.is_leaderboard_chain.get() {
+                    return;
+                }
+
+                let session_id = session.session_id.clone();
+                self.state
+                    .game_sessions
+                    .insert(&session_id, session)
+                    .expect("Failed to register session");
+            }
+
+            FlappyMessage::SubmitVerifiedScore {
+                session_id,
+                username,
+                tournament_id,
+                proof,
+                player_chain_id,
+                session,
+            } => {
+                // Only process on leaderboard chain
+                if !*self.state.is_leaderboard_chain.get() {
+                    return;
+                }
+
+                // Ensure session is registered (idempotent)
+                // This fixes race condition where SubmitVerifiedScore arrives before RegisterGameSession
+                if self.state.game_sessions.get(&session_id).await.ok().flatten().is_none() {
+                    self.state.game_sessions.insert(&session_id, session)
+                        .expect("Failed to register session");
+                }
+
+                // Validate and process score
+                self.validate_and_process_score(
+                    &session_id,
+                    &username,
+                    tournament_id,
+                    proof,
+                    player_chain_id,
+                )
+                .await;
+            }
+
+            FlappyMessage::ProofConfirmation {
+                session_id,
+                username: _,
+                status,
+                rejection_reason,
+                leaderboard_rank,
+                ..
+            } => {
+                // Update proof history on player chain
+                if let Ok(Some(mut proof_entry)) =
+                    self.state.proof_history.get(&session_id).await
+                {
+                    proof_entry.status = match status.as_str() {
+                        "accepted" => ProofStatus::Accepted,
+                        "rejected" => ProofStatus::Rejected,
+                        _ => ProofStatus::Pending,
+                    };
+                    proof_entry.confirmed_at = Some(self.runtime.system_time().micros());
+                    proof_entry.rejection_reason = rejection_reason;
+                    proof_entry.leaderboard_rank = leaderboard_rank;
+
+                    self.state
+                        .proof_history
+                        .insert(&session_id, proof_entry)
+                        .expect("Failed to update proof status");
                 }
             }
         }
@@ -916,5 +1079,157 @@ impl FlappyContract {
                 }
             }
         }
+    }
+
+    // Anti-cheat helper functions
+    async fn validate_and_process_score(
+        &mut self,
+        session_id: &str,
+        username: &str,
+        tournament_id: Option<String>,
+        proof: flappy::GameProof,
+        player_chain_id: ChainId,
+    ) {
+        // Validate session
+        let session = match self.state.game_sessions.get(session_id).await {
+            Ok(Some(s)) => s,
+            _ => {
+                self.send_rejection(session_id, username, player_chain_id, "Session not found")
+                    .await;
+                return;
+            }
+        };
+
+        // Check session ownership
+        if session.username != username || session.chain_id != player_chain_id {
+            self.send_rejection(session_id, username, player_chain_id, "Session mismatch")
+                .await;
+            return;
+        }
+
+        // Check expiry (10 minutes)
+        let current_time = self.runtime.system_time().micros();
+        if current_time - session.started_at > 10 * 60 * 1_000_000 {
+            self.send_rejection(session_id, username, player_chain_id, "Session expired")
+                .await;
+            return;
+        }
+
+        // LAYER 2: Validate proof (SECURITY - cannot be bypassed!)
+        if let Err(error) = flappy::validate_game_proof(&proof) {
+            self.send_rejection(session_id, username, player_chain_id, &error)
+                .await;
+            return;
+        }
+
+        // All checks passed - process score
+        let score = proof.final_score;
+        let rank = if let Some(ref tid) = tournament_id {
+            self.process_tournament_score(tid.clone(), username.to_string(), score, player_chain_id)
+                .await;
+            self.get_tournament_rank(tid, username).await
+        } else {
+            self.process_practice_score(username, score, player_chain_id)
+                .await;
+            self.get_practice_rank(username).await
+        };
+
+        // Send confirmation back to player
+        self.send_confirmation(session_id, username, player_chain_id, rank)
+            .await;
+
+        // Clean up session
+        self.state.game_sessions.remove(session_id).ok();
+    }
+
+    async fn send_rejection(
+        &mut self,
+        session_id: &str,
+        username: &str,
+        player_chain_id: ChainId,
+        reason: &str,
+    ) {
+        let message = FlappyMessage::ProofConfirmation {
+            session_id: session_id.to_string(),
+            username: username.to_string(),
+            status: "rejected".to_string(),
+            rejection_reason: Some(reason.to_string()),
+            leaderboard_rank: None,
+            player_chain_id,
+        };
+
+        self.runtime
+            .prepare_message(message)
+            .send_to(player_chain_id);
+    }
+
+    async fn send_confirmation(
+        &mut self,
+        session_id: &str,
+        username: &str,
+        player_chain_id: ChainId,
+        rank: Option<u32>,
+    ) {
+        let message = FlappyMessage::ProofConfirmation {
+            session_id: session_id.to_string(),
+            username: username.to_string(),
+            status: "accepted".to_string(),
+            rejection_reason: None,
+            leaderboard_rank: rank,
+            player_chain_id,
+        };
+
+        self.runtime
+            .prepare_message(message)
+            .send_to(player_chain_id);
+    }
+
+    async fn process_practice_score(
+        &mut self,
+        username: &str,
+        score: u64,
+        player_chain_id: ChainId,
+    ) {
+        let timestamp = self.runtime.system_time().micros();
+        let entry = PracticeEntry {
+            username: username.to_string(),
+            score,
+            chain_id: player_chain_id,
+            timestamp,
+        };
+
+        let should_update = match self.state.practice_best_scores.get(username).await {
+            Ok(Some(current)) => score > current.score,
+            _ => true,
+        };
+
+        if should_update {
+            self.state
+                .practice_best_scores
+                .insert(username, entry)
+                .expect("Failed to update practice score");
+            self.update_practice_leaderboard().await;
+        }
+    }
+
+    async fn get_practice_rank(&self, username: &str) -> Option<u32> {
+        let leaderboard = self.state.practice_leaderboard.get();
+        leaderboard
+            .iter()
+            .position(|e| e.username == username)
+            .map(|pos| (pos + 1) as u32)
+    }
+
+    async fn get_tournament_rank(&self, tournament_id: &str, username: &str) -> Option<u32> {
+        let leaderboard = self
+            .state
+            .tournament_leaderboards
+            .get(tournament_id)
+            .await
+            .ok()??;
+        leaderboard
+            .iter()
+            .find(|r| r.username == username)
+            .map(|r| r.rank)
     }
 }

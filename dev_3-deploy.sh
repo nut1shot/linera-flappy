@@ -18,8 +18,8 @@ NC='\033[0m' # No Color
 
 # Configuration
 FAUCET_PORT=8079
-# FAUCET_URL="http://localhost:$FAUCET_PORT"
-FAUCET_URL=https://faucet.testnet-babbage.linera.net
+FAUCET_URL="http://localhost:$FAUCET_PORT"
+# FAUCET_URL=https://faucet.testnet-conway.linera.net
 PROJECT_DIR=$(pwd)
 TMP_DIR="$PROJECT_DIR/tmp"
 
@@ -66,9 +66,17 @@ APP_ID=$(linera --with-wallet 1 publish-and-create \
   target/wasm32-unknown-unknown/release/flappy_{contract,service}.wasm \
   --json-argument '{
     "player_name": "LEADERBOARD_CHAIN",
-    "admin_username": "xxx",
-    "admin_hash": "xxx"
+    "admin_username": "admin",
+    "admin_hash": "b12ad639d175473dc2c63be46326225f1f0b59d2b547d3f3d26c9c10ff9dbd24"
   }')
+
+  # APP_ID=$(linera --with-wallet 1 publish-and-create \
+  # ../target/wasm32-unknown-unknown/release/flappy_{contract,service}.wasm \
+  # --json-argument '{
+  #   "player_name": "LEADERBOARD_CHAIN",
+  #   "admin_username": "admin",
+  #   "admin_hash": "b12ad639d175473dc2c63be46326225f1f0b59d2b547d3f3d26c9c10ff9dbd24"
+  # }')
 
 echo "Waiting for Deploying application..."
 sleep 5

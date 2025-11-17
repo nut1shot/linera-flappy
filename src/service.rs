@@ -10,7 +10,7 @@ use linera_sdk::{
     ServiceRuntime,
 };
 
-use flappy::{ApplicationParameters, LeaderboardEntry, Operation, User, LoginResult, PracticeEntry, Tournament, TournamentResult};
+use flappy::{ApplicationParameters, LeaderboardEntry, Operation, User, LoginResult, PracticeEntry, Tournament, TournamentResult, GameSession, ProofHistoryEntry};
 
 use self::state::FlappyState;
 
@@ -89,6 +89,26 @@ impl Service for FlappyService {
         
         let pinned_tournaments = self.state.pinned_tournaments.get().clone();
 
+        // Anti-cheat fields - Precompute proof history and game sessions
+        let mut all_proof_history = std::collections::HashMap::new();
+        let mut all_game_sessions = std::collections::HashMap::new();
+
+        // Get all proof history entries
+        let proof_session_ids = self.state.proof_history.indices().await.unwrap_or_default();
+        for session_id in proof_session_ids {
+            if let Ok(Some(proof_entry)) = self.state.proof_history.get(&session_id).await {
+                all_proof_history.insert(session_id.clone(), proof_entry);
+            }
+        }
+
+        // Get all game sessions
+        let session_ids = self.state.game_sessions.indices().await.unwrap_or_default();
+        for session_id in session_ids {
+            if let Ok(Some(session)) = self.state.game_sessions.get(&session_id).await {
+                all_game_sessions.insert(session_id.clone(), session);
+            }
+        }
+
         Schema::build(
             QueryRoot {
                 player_name,
@@ -104,6 +124,8 @@ impl Service for FlappyService {
                 my_tournaments,
                 my_tournament_scores_map,
                 pinned_tournaments,
+                all_proof_history,
+                all_game_sessions,
             },
             Operation::mutation_root(self.runtime.clone()),
             EmptySubscription,
@@ -128,6 +150,8 @@ struct QueryRoot {
     my_tournaments: Vec<String>,
     my_tournament_scores_map: std::collections::HashMap<String, Vec<u64>>,
     pinned_tournaments: Vec<String>,
+    all_proof_history: std::collections::HashMap<String, ProofHistoryEntry>,
+    all_game_sessions: std::collections::HashMap<String, GameSession>,
 }
 
 #[Object]
@@ -289,5 +313,59 @@ impl QueryRoot {
             .get(&tournament_id)
             .map(|tournament| tournament.participants.contains(&username))
             .unwrap_or(false)
+    }
+
+    // Anti-cheat queries
+    async fn proof_history(&self) -> Vec<ProofHistoryEntry> {
+        let mut history: Vec<ProofHistoryEntry> = self.all_proof_history.values().cloned().collect();
+        // Sort by submission time, most recent first
+        history.sort_by(|a, b| b.submitted_at.cmp(&a.submitted_at));
+        history
+    }
+
+    async fn proof_entry(&self, session_id: String) -> Option<ProofHistoryEntry> {
+        self.all_proof_history.get(&session_id).cloned()
+    }
+
+    async fn game_session(&self, session_id: String) -> Option<GameSession> {
+        self.all_game_sessions.get(&session_id).cloned()
+    }
+
+    async fn active_game_sessions(&self) -> Vec<GameSession> {
+        self.all_game_sessions.values().cloned().collect()
+    }
+
+    async fn proof_history_count(&self) -> usize {
+        self.all_proof_history.len()
+    }
+
+    async fn accepted_proofs(&self) -> Vec<ProofHistoryEntry> {
+        let mut accepted: Vec<ProofHistoryEntry> = self.all_proof_history
+            .values()
+            .filter(|entry| matches!(entry.status, flappy::ProofStatus::Accepted))
+            .cloned()
+            .collect();
+        accepted.sort_by(|a, b| b.submitted_at.cmp(&a.submitted_at));
+        accepted
+    }
+
+    async fn rejected_proofs(&self) -> Vec<ProofHistoryEntry> {
+        let mut rejected: Vec<ProofHistoryEntry> = self.all_proof_history
+            .values()
+            .filter(|entry| matches!(entry.status, flappy::ProofStatus::Rejected))
+            .cloned()
+            .collect();
+        rejected.sort_by(|a, b| b.submitted_at.cmp(&a.submitted_at));
+        rejected
+    }
+
+    async fn pending_proofs(&self) -> Vec<ProofHistoryEntry> {
+        let mut pending: Vec<ProofHistoryEntry> = self.all_proof_history
+            .values()
+            .filter(|entry| matches!(entry.status, flappy::ProofStatus::Pending))
+            .cloned()
+            .collect();
+        pending.sort_by(|a, b| b.submitted_at.cmp(&a.submitted_at));
+        pending
     }
 }

@@ -18,8 +18,8 @@ NC='\033[0m' # No Color
 
 # Configuration
 FAUCET_PORT=8079
-# FAUCET_URL="http://localhost:$FAUCET_PORT"
-FAUCET_URL=https://faucet.testnet-babbage.linera.net
+FAUCET_URL="http://localhost:$FAUCET_PORT"
+# FAUCET_URL=https://faucet.testnet-conway.linera.net
 PROJECT_DIR=$(pwd)
 TMP_DIR="$PROJECT_DIR/tmp"
 

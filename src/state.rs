@@ -1,4 +1,4 @@
-use flappy::{LeaderboardEntry, User, LoginResult, PracticeEntry, Tournament, TournamentResult};
+use flappy::{LeaderboardEntry, User, LoginResult, PracticeEntry, Tournament, TournamentResult, GameSession, ProofHistoryEntry};
 use linera_sdk::linera_base_types::ChainId;
 use linera_sdk::views::{linera_views, MapView, RegisterView, RootView, ViewStorageContext};
 
@@ -36,4 +36,9 @@ pub struct FlappyState {
     // For player chains:
     pub my_tournaments: RegisterView<Vec<String>>, // Tournament IDs user has joined
     pub my_tournament_scores: MapView<String, Vec<u64>>, // tournament_id -> personal scores in that tournament
+
+    // Anti-cheat fields
+    pub game_sessions: MapView<String, GameSession>, // session_id -> session (both chains)
+    pub session_counter: RegisterView<u64>, // Counter for generating unique session IDs
+    pub proof_history: MapView<String, ProofHistoryEntry>, // session_id -> proof entry (player chains)
 }

@@ -120,6 +120,18 @@ pub enum Operation {
         username: String,
         score: u64,
     },
+    // Anti-cheat operations
+    StartGameSession {
+        session_id: String,  // Frontend-generated session ID
+        username: String,
+        tournament_id: Option<String>,
+    },
+    SubmitVerifiedScore {
+        session_id: String,
+        username: String,
+        tournament_id: Option<String>,
+        proof: GameProof,
+    },
 }
 
 // Add message types for cross-chain communication
@@ -145,6 +157,26 @@ pub enum FlappyMessage {
     RequestTournamentData {
         tournament_id: String,
         requester_chain_id: ChainId,
+    },
+    // Anti-cheat messages
+    RegisterGameSession {
+        session: GameSession,
+    },
+    SubmitVerifiedScore {
+        session_id: String,
+        username: String,
+        tournament_id: Option<String>,
+        proof: GameProof,
+        player_chain_id: ChainId,
+        session: GameSession, // Include full session data to avoid race condition
+    },
+    ProofConfirmation {
+        session_id: String,
+        username: String,
+        status: String,  // "accepted" or "rejected"
+        rejection_reason: Option<String>,
+        leaderboard_rank: Option<u32>,
+        player_chain_id: ChainId,
     },
 }
 
@@ -199,6 +231,104 @@ pub struct TournamentResult {
     pub rank: u32,
     pub chain_id: ChainId,
     pub timestamp: u64,
+}
+
+// ============================================================================
+// ANTI-CHEAT: Game Session & Proof System
+// ============================================================================
+
+/// Game session - created when player starts a game
+#[derive(Debug, Clone, Deserialize, Serialize, async_graphql::SimpleObject)]
+pub struct GameSession {
+    pub session_id: String,
+    pub username: String,
+    pub tournament_id: Option<String>,
+    pub seed: u64,              // Random seed for deterministic validation
+    pub started_at: u64,        // Timestamp in microseconds
+    pub chain_id: ChainId,
+}
+
+/// Game proof - tracks key events during gameplay
+#[derive(Debug, Clone, Deserialize, Serialize, async_graphql::SimpleObject, async_graphql::InputObject)]
+#[graphql(input_name = "GameProofInput")]
+pub struct GameProof {
+    pub pipes_passed: u64,      // How many pipes cleared
+    pub game_duration_ms: u64,  // How long the game lasted (milliseconds)
+    pub jump_count: u64,        // How many times player jumped
+    pub final_score: u64,       // Claimed score
+}
+
+/// Proof history entry - stored on player chain for transparency
+#[derive(Debug, Clone, Deserialize, Serialize, async_graphql::SimpleObject)]
+pub struct ProofHistoryEntry {
+    pub proof: GameProof,
+    pub session_id: String,
+    pub tournament_id: Option<String>,
+    pub submitted_at: u64,
+    pub status: ProofStatus,
+    pub confirmed_at: Option<u64>,
+    pub rejection_reason: Option<String>,
+    pub leaderboard_rank: Option<u32>,
+}
+
+/// Proof status
+#[derive(Debug, Clone, Deserialize, Serialize, async_graphql::Enum, Copy, PartialEq, Eq)]
+pub enum ProofStatus {
+    Pending,   // Waiting for leaderboard confirmation
+    Accepted,  // Verified and on leaderboard
+    Rejected,  // Failed validation
+}
+
+/// Shared validation function - used by both player and leaderboard chains
+pub fn validate_game_proof(proof: &GameProof) -> Result<(), String> {
+    let score = proof.final_score;
+    let duration_ms = proof.game_duration_ms;
+    let pipes = proof.pipes_passed;
+    let jumps = proof.jump_count;
+
+    // RULE 1: Score must equal pipes passed
+    if score != pipes {
+        return Err(format!("Score mismatch: {} != {}", score, pipes));
+    }
+
+    // RULE 2: Minimum time per pipe (~1.2 seconds)
+    let min_duration = pipes.saturating_mul(1200);
+    if pipes > 0 && duration_ms < min_duration {
+        return Err(format!(
+            "Impossible timing: {} pipes in {}ms (minimum {}ms)",
+            pipes, duration_ms, min_duration
+        ));
+    }
+
+    // RULE 3: Maximum possible score (10 min game, pipes every 1.5s)
+    let max_possible = 400;
+    if score > max_possible {
+        return Err(format!("Score {} exceeds maximum {}", score, max_possible));
+    }
+
+    // RULE 4: Reasonable jump count (1-10 jumps per pipe, plus base 5 for starting)
+    // Allow 5 base jumps + 10 per pipe (accounts for initial jumps before first pipe)
+    let max_jumps = 5 + pipes.saturating_mul(10);
+    if jumps > max_jumps {
+        return Err(format!("Too many jumps: {} for {} pipes (max {})", jumps, pipes, max_jumps));
+    }
+
+    // RULE 5: Must have jumps if passed pipes
+    if pipes > 0 && jumps == 0 {
+        return Err(format!("Invalid: {} pipes with 0 jumps", pipes));
+    }
+
+    // RULE 6: Minimum game duration
+    if duration_ms < 1000 && score > 0 {
+        return Err(format!("Game too short: {}ms", duration_ms));
+    }
+
+    // RULE 7: Maximum game duration (10 minutes)
+    if duration_ms > 600_000 {
+        return Err(format!("Game too long: {}ms (max 10 minutes)", duration_ms));
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
