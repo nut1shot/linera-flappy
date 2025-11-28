@@ -300,11 +300,11 @@ pub fn validate_game_proof(proof: &GameProof) -> Result<(), String> {
         ));
     }
 
-    // RULE 3: Maximum possible score (10 min game, pipes every 1.5s)
-    let max_possible = 400;
-    if score > max_possible {
-        return Err(format!("Score {} exceeds maximum {}", score, max_possible));
-    }
+    // RULE 3: Maximum possible score (REMOVED as requested)
+    // let max_possible = 400;
+    // if score > max_possible {
+    //    return Err(format!("Score {} exceeds maximum {}", score, max_possible));
+    // }
 
     // RULE 4: Reasonable jump count (1-10 jumps per pipe, plus base 5 for starting)
     // Allow 5 base jumps + 10 per pipe (accounts for initial jumps before first pipe)
@@ -323,9 +323,9 @@ pub fn validate_game_proof(proof: &GameProof) -> Result<(), String> {
         return Err(format!("Game too short: {}ms", duration_ms));
     }
 
-    // RULE 7: Maximum game duration (10 minutes)
-    if duration_ms > 600_000 {
-        return Err(format!("Game too long: {}ms (max 10 minutes)", duration_ms));
+    // RULE 7: Maximum game duration (60 minutes)
+    if duration_ms > 60 * 60 * 1000 {
+        return Err(format!("Game too long: {}ms (max 60 minutes)", duration_ms));
     }
 
     Ok(())

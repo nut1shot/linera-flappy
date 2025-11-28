@@ -1109,7 +1109,7 @@ impl FlappyContract {
 
         // Check expiry (10 minutes)
         let current_time = self.runtime.system_time().micros();
-        if current_time - session.started_at > 10 * 60 * 1_000_000 {
+        if current_time - session.started_at > 60 * 60 * 1_000_000 {
             self.send_rejection(session_id, username, player_chain_id, "Session expired")
                 .await;
             return;
